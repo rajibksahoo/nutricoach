@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="005-create-food-items" author="nutricoach">
+        <createTable tableName="food_items">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name_hindi" type="varchar(200)"/>
+            <column name="name_regional" type="varchar(200)"/>
+            <column name="cuisine_type" type="varchar(30)"/>
+            <column name="category" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calories_per_100g" type="numeric(7,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="protein_per_100g" type="numeric(6,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="carbs_per_100g" type="numeric(6,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fat_per_100g" type="numeric(6,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fiber_per_100g" type="numeric(6,2)" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source" type="varchar(10)" defaultValue="IFCT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="food_items" indexName="idx_food_items_cuisine_type">
+            <column name="cuisine_type"/>
+        </createIndex>
+
+        <createIndex tableName="food_items" indexName="idx_food_items_category">
+            <column name="category"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE food_items
+                ADD CONSTRAINT chk_food_items_cuisine_type
+                CHECK (cuisine_type IN ('SOUTH_INDIAN','GUJARATI','PUNJABI','JAIN','BENGALI',
+                                        'RAJASTHANI','MAHARASHTRIAN','NORTH_EAST','PAN_INDIAN'));
+
+            ALTER TABLE food_items
+                ADD CONSTRAINT chk_food_items_category
+                CHECK (category IN ('GRAIN','PROTEIN','VEGETABLE','FRUIT','DAIRY',
+                                    'FAT','BEVERAGE','SPICE','OTHER'));
+
+            ALTER TABLE food_items
+                ADD CONSTRAINT chk_food_items_source
+                CHECK (source IN ('IFCT','CUSTOM'));
+
+            /* Now that food_items exists, add the FK from meal_items */
+            ALTER TABLE meal_items
+                ADD CONSTRAINT fk_meal_items_food_item
+                FOREIGN KEY (food_item_id) REFERENCES food_items(id);
+        </sql>
+
+        <rollback>
+            <sql>ALTER TABLE meal_items DROP CONSTRAINT fk_meal_items_food_item;</sql>
+            <dropTable tableName="food_items"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

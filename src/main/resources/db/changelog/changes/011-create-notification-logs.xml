@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="011-create-notification-logs" author="nutricoach">
+        <createTable tableName="notification_logs">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_notif_logs_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints foreignKeyName="fk_notif_logs_client"
+                             references="clients(id)"/>
+                <!-- nullable: some notifications are coach-only (e.g. billing alerts) -->
+            </column>
+            <column name="channel" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="external_id" type="varchar(100)"/>
+            <column name="message_body" type="text"/>
+            <column name="sent_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="notification_logs" indexName="idx_notif_logs_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <createIndex tableName="notification_logs" indexName="idx_notif_logs_client_id">
+            <column name="client_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE notification_logs
+                ADD CONSTRAINT chk_notif_logs_channel
+                CHECK (channel IN ('SMS','WHATSAPP'));
+            ALTER TABLE notification_logs
+                ADD CONSTRAINT chk_notif_logs_type
+                CHECK (type IN ('OTP','MEAL_PLAN_SHARE','CHECK_IN_REMINDER','PROGRESS_UPDATE','BILLING_ALERT'));
+            ALTER TABLE notification_logs
+                ADD CONSTRAINT chk_notif_logs_status
+                CHECK (status IN ('PENDING','SENT','FAILED'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="notification_logs"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

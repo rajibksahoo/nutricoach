@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="008-create-subscriptions" author="nutricoach">
+        <createTable tableName="subscriptions">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_subscriptions_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="plan_tier" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="razorpay_subscription_id" type="varchar(50)">
+                <constraints unique="true"/>
+            </column>
+            <column name="amount_paise" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="current_period_start" type="timestamptz"/>
+            <column name="current_period_end" type="timestamptz"/>
+            <column name="cancelled_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="subscriptions" indexName="idx_subscriptions_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE subscriptions
+                ADD CONSTRAINT chk_subscriptions_tier
+                CHECK (plan_tier IN ('STARTER','PROFESSIONAL','ENTERPRISE'));
+            ALTER TABLE subscriptions
+                ADD CONSTRAINT chk_subscriptions_status
+                CHECK (status IN ('TRIAL','ACTIVE','PAST_DUE','CANCELLED'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="subscriptions"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="008-create-invoices" author="nutricoach">
+        <createTable tableName="invoices">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_invoices_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="subscription_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_invoices_subscription"
+                             references="subscriptions(id)"/>
+            </column>
+            <column name="razorpay_payment_id" type="varchar(50)">
+                <constraints unique="true"/>
+            </column>
+            <column name="invoice_number" type="varchar(30)">
+                <constraints unique="true"/>
+            </column>
+            <column name="amount_paise" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="gst_amount_paise" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="invoice_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="invoices" indexName="idx_invoices_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE invoices
+                ADD CONSTRAINT chk_invoices_status
+                CHECK (status IN ('PAID','PENDING','FAILED','REFUNDED'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="invoices"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

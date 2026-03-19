@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="003-create-meal-plans" author="nutricoach">
+        <createTable tableName="meal_plans">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_meal_plans_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_meal_plans_client"
+                             references="clients(id)"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="start_date" type="date"/>
+            <column name="end_date" type="date"/>
+            <column name="status" type="varchar(20)" defaultValue="DRAFT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ai_generated" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_calories_target" type="int"/>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="meal_plans" indexName="idx_meal_plans_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <createIndex tableName="meal_plans" indexName="idx_meal_plans_client_id">
+            <column name="client_id"/>
+        </createIndex>
+
+        <!-- Dashboard: active plans per coach -->
+        <createIndex tableName="meal_plans" indexName="idx_meal_plans_coach_status">
+            <column name="coach_id"/>
+            <column name="status"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE meal_plans
+                ADD CONSTRAINT chk_meal_plans_status
+                CHECK (status IN ('DRAFT', 'ACTIVE', 'COMPLETED', 'ARCHIVED'));
+
+            /* end_date must be after start_date when both are set */
+            ALTER TABLE meal_plans
+                ADD CONSTRAINT chk_meal_plans_dates
+                CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date);
+
+            /* coach_id on meal_plan must match the client's coach_id — enforced in app layer,
+               documented here as a reminder */
+        </sql>
+
+        <rollback>
+            <dropTable tableName="meal_plans"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

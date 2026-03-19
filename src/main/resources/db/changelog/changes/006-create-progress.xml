@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="006-create-progress-logs" author="nutricoach">
+        <createTable tableName="progress_logs">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_progress_logs_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_progress_logs_client"
+                             references="clients(id)"/>
+            </column>
+            <column name="logged_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="weight_kg" type="numeric(5,2)"/>
+            <column name="body_fat_percent" type="numeric(4,1)"/>
+            <column name="waist_cm" type="numeric(5,1)"/>
+            <column name="chest_cm" type="numeric(5,1)"/>
+            <column name="hip_cm" type="numeric(5,1)"/>
+            <column name="adherence_percent" type="int"/>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="progress_logs" indexName="idx_progress_logs_client_date">
+            <column name="client_id"/>
+            <column name="logged_date" descending="true"/>
+        </createIndex>
+
+        <createIndex tableName="progress_logs" indexName="idx_progress_logs_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE progress_logs
+                ADD CONSTRAINT chk_progress_logs_adherence
+                CHECK (adherence_percent IS NULL OR adherence_percent BETWEEN 0 AND 100);
+            ALTER TABLE progress_logs
+                ADD CONSTRAINT uq_progress_logs_client_date UNIQUE (client_id, logged_date);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="progress_logs"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="006-create-progress-photos" author="nutricoach">
+        <createTable tableName="progress_photos">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_progress_photos_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="progress_log_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_progress_photos_log"
+                             references="progress_logs(id)"/>
+            </column>
+            <column name="s3_key" type="varchar(500)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="photo_type" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="progress_photos" indexName="idx_progress_photos_log_id">
+            <column name="progress_log_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE progress_photos
+                ADD CONSTRAINT chk_progress_photos_type
+                CHECK (photo_type IN ('FRONT','SIDE','BACK'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="progress_photos"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

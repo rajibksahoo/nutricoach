@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="004-create-meal-plan-days" author="nutricoach">
+        <createTable tableName="meal_plan_days">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_plan_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_mpdays_meal_plan"
+                             references="meal_plans(id)"/>
+            </column>
+            <column name="day_number" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="total_calories" type="int"/>
+            <column name="total_protein_g" type="numeric(6,2)"/>
+            <column name="total_carbs_g" type="numeric(6,2)"/>
+            <column name="total_fat_g" type="numeric(6,2)"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="meal_plan_days" indexName="idx_mpdays_meal_plan_id">
+            <column name="meal_plan_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE meal_plan_days
+                ADD CONSTRAINT chk_mpdays_day_number CHECK (day_number BETWEEN 1 AND 7);
+            ALTER TABLE meal_plan_days
+                ADD CONSTRAINT uq_mpdays_plan_day UNIQUE (meal_plan_id, day_number);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="meal_plan_days"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="004-create-meals" author="nutricoach">
+        <createTable tableName="meals">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_plan_day_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_meals_mpday"
+                             references="meal_plan_days(id)"/>
+            </column>
+            <column name="meal_type" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="time_of_day" type="time"/>
+            <column name="sequence_order" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="meals" indexName="idx_meals_mpday_id">
+            <column name="meal_plan_day_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE meals
+                ADD CONSTRAINT chk_meals_type
+                CHECK (meal_type IN ('BREAKFAST','LUNCH','DINNER','SNACK','PRE_WORKOUT','POST_WORKOUT'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="meals"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="004-create-meal-items" author="nutricoach">
+        <createTable tableName="meal_items">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="meal_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_meal_items_meal"
+                             references="meals(id)"/>
+            </column>
+            <column name="food_item_id" type="uuid">
+                <constraints nullable="false"/>
+                <!-- FK to food_items added in 005 after that table exists -->
+            </column>
+            <column name="quantity_grams" type="numeric(7,2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="quantity_unit" type="varchar(20)" defaultValue="g">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calories" type="int"/>
+            <column name="protein_g" type="numeric(6,2)"/>
+            <column name="carbs_g" type="numeric(6,2)"/>
+            <column name="fat_g" type="numeric(6,2)"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="meal_items" indexName="idx_meal_items_meal_id">
+            <column name="meal_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="meal_items"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

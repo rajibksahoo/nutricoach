@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="007-create-check-ins" author="nutricoach">
+        <createTable tableName="check_ins">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_check_ins_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_check_ins_client"
+                             references="clients(id)"/>
+            </column>
+            <column name="meal_plan_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_check_ins_meal_plan"
+                             references="meal_plans(id)"/>
+            </column>
+            <column name="check_in_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adherence_percent" type="int"/>
+            <column name="client_notes" type="text"/>
+            <column name="coach_notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="check_ins" indexName="idx_check_ins_client_date">
+            <column name="client_id"/>
+            <column name="check_in_date" descending="true"/>
+        </createIndex>
+
+        <createIndex tableName="check_ins" indexName="idx_check_ins_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE check_ins
+                ADD CONSTRAINT chk_check_ins_adherence
+                CHECK (adherence_percent IS NULL OR adherence_percent BETWEEN 0 AND 100);
+            ALTER TABLE check_ins
+                ADD CONSTRAINT uq_check_ins_client_date UNIQUE (client_id, check_in_date);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="check_ins"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

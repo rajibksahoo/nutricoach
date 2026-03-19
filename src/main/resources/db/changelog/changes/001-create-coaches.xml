@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="001-create-coaches" author="nutricoach">
+        <createTable tableName="coaches">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="phone" type="varchar(15)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)"/>
+            <column name="business_name" type="varchar(150)"/>
+            <column name="gstin" type="varchar(15)"/>
+            <column name="subscription_tier" type="varchar(20)" defaultValue="STARTER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="subscription_status" type="varchar(20)" defaultValue="TRIAL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="razorpay_customer_id" type="varchar(50)"/>
+            <column name="trial_ends_at" type="timestamptz"/>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="coaches" indexName="idx_coaches_phone" unique="true">
+            <column name="phone"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE coaches
+                ADD CONSTRAINT chk_coaches_subscription_tier
+                CHECK (subscription_tier IN ('STARTER', 'PROFESSIONAL', 'ENTERPRISE'));
+
+            ALTER TABLE coaches
+                ADD CONSTRAINT chk_coaches_subscription_status
+                CHECK (subscription_status IN ('TRIAL', 'ACTIVE', 'PAST_DUE', 'CANCELLED'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="coaches"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

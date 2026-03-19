@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Week 1: Core schema -->
+    <include file="db/changelog/changes/001-create-coaches.xml"/>
+    <include file="db/changelog/changes/002-create-clients.xml"/>
+    <include file="db/changelog/changes/003-create-meal-plans.xml"/>
+    <include file="db/changelog/changes/004-create-meal-plan-days-meals-items.xml"/>
+    <include file="db/changelog/changes/005-create-food-items.xml"/>
+    <include file="db/changelog/changes/006-create-progress.xml"/>
+    <include file="db/changelog/changes/007-create-check-ins.xml"/>
+    <include file="db/changelog/changes/008-create-billing.xml"/>
+    <include file="db/changelog/changes/009-create-otp-requests.xml"/>
+    <include file="db/changelog/changes/010-create-ai-jobs.xml"/>
+    <include file="db/changelog/changes/011-create-notification-logs.xml"/>
+
+</databaseChangeLog>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="002-create-clients" author="nutricoach">
+        <createTable tableName="clients">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_clients_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="phone" type="varchar(15)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="email" type="varchar(255)"/>
+            <column name="whatsapp_number" type="varchar(15)"/>
+            <column name="date_of_birth" type="date"/>
+            <column name="gender" type="varchar(10)"/>
+            <column name="height_cm" type="int"/>
+            <column name="weight_kg" type="numeric(5,2)"/>
+            <column name="goal" type="varchar(20)"/>
+            <column name="dietary_pref" type="varchar(20)"/>
+            <column name="activity_level" type="varchar(20)"/>
+            <column name="health_conditions" type="jsonb"/>
+            <column name="allergies" type="jsonb"/>
+            <column name="status" type="varchar(20)" defaultValue="ONBOARDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Tenant filter — used on almost every query -->
+        <createIndex tableName="clients" indexName="idx_clients_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <!-- Dashboard status filter -->
+        <createIndex tableName="clients" indexName="idx_clients_coach_status">
+            <column name="coach_id"/>
+            <column name="status"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE clients
+                ADD CONSTRAINT chk_clients_gender
+                CHECK (gender IN ('MALE', 'FEMALE', 'OTHER'));
+
+            ALTER TABLE clients
+                ADD CONSTRAINT chk_clients_goal
+                CHECK (goal IN ('WEIGHT_LOSS', 'WEIGHT_GAIN', 'MAINTENANCE', 'MUSCLE_GAIN'));
+
+            ALTER TABLE clients
+                ADD CONSTRAINT chk_clients_dietary_pref
+                CHECK (dietary_pref IN ('VEG', 'NON_VEG', 'VEGAN', 'JAIN', 'EGGETARIAN'));
+
+            ALTER TABLE clients
+                ADD CONSTRAINT chk_clients_activity_level
+                CHECK (activity_level IN ('SEDENTARY', 'LIGHT', 'MODERATE', 'ACTIVE', 'VERY_ACTIVE'));
+
+            ALTER TABLE clients
+                ADD CONSTRAINT chk_clients_status
+                CHECK (status IN ('ONBOARDING', 'ACTIVE', 'INACTIVE'));
+
+            /* phone must be unique within a coach's client list */
+            ALTER TABLE clients
+                ADD CONSTRAINT uq_clients_coach_phone UNIQUE (coach_id, phone);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="clients"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

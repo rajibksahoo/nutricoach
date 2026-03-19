@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="009-create-otp-requests" author="nutricoach">
+        <createTable tableName="otp_requests">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="phone" type="varchar(15)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="otp_hash" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="attempts" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verified" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Latest OTP lookup by phone -->
+        <createIndex tableName="otp_requests" indexName="idx_otp_requests_phone_created">
+            <column name="phone"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE otp_requests
+                ADD CONSTRAINT chk_otp_requests_attempts CHECK (attempts >= 0);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="otp_requests"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

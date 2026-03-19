@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+  liquibase:
+    enabled: false
+
+app:
+  jwt:
+    secret: dGVzdC1zZWNyZXQta2V5LWZvci1qdW5pdC10ZXN0cy1vbmx5LTMyYnl0ZXM=
+    expiry-hours: 1
+  msg91:
+    auth-key: test
+    template-id: test
+    sender-id: TEST
+  wati:
+    api-endpoint: http://localhost
+    api-token: test
+  razorpay:
+    key-id: test
+    key-secret: test
+    webhook-secret: test
+  aws:
+    region: ap-south-1
+    s3:
+      bucket: test-bucket
+    access-key: test
+    secret-key: test
+  openai:
+    api-key: test
