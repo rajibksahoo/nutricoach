@@ -44,6 +44,7 @@ app:
     auth-key: ${MSG91_AUTH_KEY}
     template-id: ${MSG91_TEMPLATE_ID}
     sender-id: NUTRIC
+    dev-mode: ${MSG91_DEV_MODE:false}
 
   wati:
     api-endpoint: ${WATI_API_ENDPOINT}
