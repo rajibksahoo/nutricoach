@@ -1,0 +1,51 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate        # Liquibase still owns schema, same as prod
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    enabled: true               # Runs all 12 changesets against TC Postgres
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+app:
+  jwt:
+    # base64("nutricoach-test-jwt-secret-key!!") — 32 bytes, valid for HS256
+    secret: bnV0cmljb2FjaC10ZXN0LWp3dC1zZWNyZXQta2V5ISE=
+    expiry-hours: 1
+
+  msg91:
+    auth-key: test-auth-key
+    template-id: test-template-id
+    dev-mode: true              # OTP printed to logs, no real SMS
+
+  wati:
+    api-endpoint: http://localhost:9999
+    api-token: test-wati-token
+
+  razorpay:
+    key-id: rzp_test_dummy
+    key-secret: dummy-secret
+    webhook-secret: dummy-webhook
+
+  aws:
+    s3:
+      bucket: nutricoach-test-bucket
+    access-key: test-access-key
+    secret-key: test-secret-key
+
+  openai:
+    api-key: test-openai-key
+
+logging:
+  level:
+    com.nutricoach: DEBUG
+    org.springframework.security: WARN
+    org.hibernate.SQL: DEBUG

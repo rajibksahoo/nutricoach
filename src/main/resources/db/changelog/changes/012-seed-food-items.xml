@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="012-seed-food-items" author="nutricoach">
+        <comment>Seed ~100 common Indian foods from IFCT (Indian Food Composition Tables)</comment>
+        <sql>
+            INSERT INTO food_items (id, name, name_hindi, name_regional, cuisine_type, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g, source, created_at, updated_at) VALUES
+
+            -- GRAINS (PAN_INDIAN)
+            (gen_random_uuid(), 'Basmati Rice (cooked)',     'Basmati Chawal',   NULL,          'PAN_INDIAN', 'GRAIN',     130.00, 2.70,  28.20,  0.30,  0.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Brown Rice (cooked)',       'Brown Chawal',     NULL,          'PAN_INDIAN', 'GRAIN',     112.00, 2.30,  23.00,  0.90,  1.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Whole Wheat Flour (Atta)',  'Gehun ka Atta',    NULL,          'PAN_INDIAN', 'GRAIN',     340.00, 11.80, 71.20,  1.70,  2.70, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chapati / Roti (cooked)',   'Roti',             NULL,          'PAN_INDIAN', 'GRAIN',     297.00, 10.60, 55.00,  3.70, 11.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Poha (dry, flattened rice)','Poha',             NULL,          'PAN_INDIAN', 'GRAIN',     356.00,  6.80, 77.00,  1.20,  0.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Poha (cooked)',             'Poha',             NULL,          'PAN_INDIAN', 'GRAIN',     130.00,  2.50, 27.00,  1.60,  0.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Daliya / Broken Wheat',    'Daliya',           NULL,          'PAN_INDIAN', 'GRAIN',     342.00, 11.20, 71.00,  2.00,  1.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Bajra (Pearl Millet)',      'Bajra',            NULL,          'PAN_INDIAN', 'GRAIN',     361.00, 11.60, 67.00,  5.00,  1.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Jowar (Sorghum)',           'Jowar',            NULL,          'PAN_INDIAN', 'GRAIN',     349.00, 10.40, 72.60,  1.90,  1.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Ragi (Finger Millet)',      'Ragi / Nachni',    NULL,          'PAN_INDIAN', 'GRAIN',     328.00,  7.30, 72.00,  1.30,  3.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Sooji / Rava (Semolina)',   'Sooji',            NULL,          'PAN_INDIAN', 'GRAIN',     348.00, 10.00, 73.00,  1.00,  0.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Oats',                     'Jaee',             NULL,          'PAN_INDIAN', 'GRAIN',     389.00, 17.00, 66.00,  7.00, 10.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Sabudana (Tapioca Pearls)', 'Sabudana',         NULL,          'PAN_INDIAN', 'GRAIN',     350.00,  0.20, 86.00,  0.20,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Amaranth / Rajgira',        'Rajgira',          NULL,          'PAN_INDIAN', 'GRAIN',     374.00, 14.00, 65.00,  7.00,  7.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Upma (cooked)',             'Upma',             NULL,          'PAN_INDIAN', 'GRAIN',     145.00,  4.50, 22.00,  5.10,  1.50, 'IFCT', now(), now()),
+
+            -- REGIONAL GRAINS
+            (gen_random_uuid(), 'Idli (steamed)',            'Idli',             'Idli',        'SOUTH_INDIAN', 'GRAIN',    58.00,  2.00, 11.90,  0.40,  1.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Plain Dosa (cooked)',       'Dosa',             'Dosai',       'SOUTH_INDIAN', 'GRAIN',   168.00,  3.80, 26.30,  5.50,  1.30, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Dhokla (steamed)',          'Dhokla',           NULL,          'GUJARATI', 'GRAIN',      170.00,  7.00, 30.00,  2.70,  1.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Thepla',                   'Thepla',           NULL,          'GUJARATI', 'GRAIN',      253.00,  7.60, 35.00,  9.00,  4.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Makki Ki Roti',             'Makki ki Roti',    NULL,          'PUNJABI', 'GRAIN',       281.00,  7.20, 59.00,  2.60,  6.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Dal Baati (baked)',         'Dal Baati',        NULL,          'RAJASTHANI', 'GRAIN',    300.00,  7.90, 49.00,  8.70,  2.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Puran Poli',               'Puran Poli',       NULL,          'MAHARASHTRIAN', 'GRAIN',  255.00,  6.40, 46.00,  5.80,  2.70, 'IFCT', now(), now()),
+
+            -- PROTEINS — DALS & LEGUMES
+            (gen_random_uuid(), 'Toor Dal (cooked)',         'Arhar Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  116.00,  7.00, 20.70,  0.40,  5.30, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Moong Dal (cooked)',        'Moong Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  105.00,  7.40, 18.00,  0.40,  4.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chana Dal (cooked)',        'Chana Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  164.00,  8.50, 27.30,  2.70,  4.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Masoor Dal (cooked)',       'Masoor Dal',       NULL,          'PAN_INDIAN', 'PROTEIN',  116.00,  9.00, 20.10,  0.40,  7.90, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Urad Dal (cooked)',         'Urad Dal',         NULL,          'PAN_INDIAN', 'PROTEIN',  105.00,  7.50, 18.30,  0.60,  3.30, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Rajma / Kidney Beans (cooked)', 'Rajma',        NULL,          'PAN_INDIAN', 'PROTEIN',  127.00,  8.70, 22.80,  0.50,  6.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chickpeas / Kabuli Chana (cooked)', 'Chole',    NULL,          'PAN_INDIAN', 'PROTEIN',  164.00,  8.90, 27.40,  2.60,  7.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Moong Sprouts (raw)',       'Moong Ankurit',    NULL,          'PAN_INDIAN', 'PROTEIN',   30.00,  3.00,  5.90,  0.20,  1.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Soya Chunks (dry)',         'Soya Badi',        NULL,          'PAN_INDIAN', 'PROTEIN',  345.00, 54.00, 33.00,  0.50, 13.00, 'IFCT', now(), now()),
+
+            -- PROTEINS — DAIRY
+            (gen_random_uuid(), 'Paneer (full fat)',         'Paneer',           NULL,          'PAN_INDIAN', 'PROTEIN',  265.00, 18.30,  3.40, 20.80,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Paneer (low fat)',          'Low Fat Paneer',   NULL,          'PAN_INDIAN', 'PROTEIN',  174.00, 19.00,  3.70,  9.90,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Tofu (firm)',               'Tofu',             NULL,          'PAN_INDIAN', 'PROTEIN',   76.00,  8.00,  1.90,  4.80,  0.30, 'IFCT', now(), now()),
+
+            -- PROTEINS — NON-VEG
+            (gen_random_uuid(), 'Egg (whole, raw)',          'Anda',             NULL,          'PAN_INDIAN', 'PROTEIN',  155.00, 13.00,  1.10, 11.00,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chicken Breast (cooked)',   'Murgi Maans',      NULL,          'PAN_INDIAN', 'PROTEIN',  165.00, 31.00,  0.00,  3.60,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chicken Thigh (cooked)',    'Murgi Jaangh',     NULL,          'PAN_INDIAN', 'PROTEIN',  209.00, 26.00,  0.00, 10.90,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Rohu Fish (cooked)',        'Rohu Machli',      NULL,          'PAN_INDIAN', 'PROTEIN',  147.00, 19.00,  0.00,  7.70,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Pomfret Fish (cooked)',     'Paplet',           NULL,          'PAN_INDIAN', 'PROTEIN',  135.00, 18.50,  0.00,  6.20,  0.00, 'IFCT', now(), now()),
+
+            -- VEGETABLES
+            (gen_random_uuid(), 'Spinach (Palak)',           'Palak',            'Keerai',      'PAN_INDIAN', 'VEGETABLE',  23.00,  2.90,  3.60,  0.40,  2.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Tomato',                   'Tamatar',          NULL,          'PAN_INDIAN', 'VEGETABLE',  18.00,  0.90,  3.90,  0.20,  1.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Onion',                    'Pyaaz',            NULL,          'PAN_INDIAN', 'VEGETABLE',  40.00,  1.10,  9.30,  0.10,  1.70, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Cauliflower (Gobi)',        'Phool Gobhi',      'Cauliflower', 'PAN_INDIAN', 'VEGETABLE',  25.00,  1.90,  5.00,  0.30,  2.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Okra (Bhindi)',             'Bhindi',           'Vendakkai',   'PAN_INDIAN', 'VEGETABLE',  33.00,  1.90,  7.50,  0.10,  3.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Bitter Gourd (Karela)',     'Karela',           NULL,          'PAN_INDIAN', 'VEGETABLE',  17.00,  1.00,  3.70,  0.20,  2.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Brinjal / Eggplant',        'Baingan',          'Kathirikai',  'PAN_INDIAN', 'VEGETABLE',  24.00,  1.00,  5.90,  0.20,  3.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Bottle Gourd (Lauki)',      'Lauki',            NULL,          'PAN_INDIAN', 'VEGETABLE',  14.00,  0.60,  3.40,  0.10,  0.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Pumpkin (Kaddu)',           'Kaddu',            NULL,          'PAN_INDIAN', 'VEGETABLE',  26.00,  1.00,  6.50,  0.10,  0.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Potato',                   'Aloo',             NULL,          'PAN_INDIAN', 'VEGETABLE',  77.00,  2.00, 17.50,  0.10,  2.20, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Sweet Potato (Shakarkandi)', 'Shakarkandi',     NULL,          'PAN_INDIAN', 'VEGETABLE',  86.00,  1.60, 20.10,  0.10,  3.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Capsicum / Bell Pepper',   'Shimla Mirch',     NULL,          'PAN_INDIAN', 'VEGETABLE',  31.00,  1.00,  6.00,  0.30,  2.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Drumstick (Moringa/Sahjan)','Sahjan',           'Murungakkai', 'SOUTH_INDIAN', 'VEGETABLE', 64.00, 3.30,  8.50,  1.40,  4.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Fenugreek Leaves (Methi)', 'Methi Patta',      NULL,          'PAN_INDIAN', 'VEGETABLE',  49.00,  4.40,  6.00,  0.90,  1.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Green Peas (Matar)',        'Matar',            NULL,          'PAN_INDIAN', 'VEGETABLE',  81.00,  5.40, 14.50,  0.40,  5.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Cabbage',                  'Patta Gobhi',      NULL,          'PAN_INDIAN', 'VEGETABLE',  25.00,  1.30,  5.80,  0.10,  2.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Carrot',                   'Gajar',            NULL,          'PAN_INDIAN', 'VEGETABLE',  41.00,  0.90,  9.60,  0.20,  2.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Cucumber',                 'Kheera',           NULL,          'PAN_INDIAN', 'VEGETABLE',  15.00,  0.70,  3.60,  0.10,  0.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Mushroom (Button)',         'Khumb',            NULL,          'PAN_INDIAN', 'VEGETABLE',  22.00,  3.10,  3.30,  0.30,  1.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Sarson Ka Saag (cooked)',  'Sarson ka Saag',   NULL,          'PUNJABI', 'VEGETABLE',    55.00,  3.00,  7.80,  2.30,  3.80, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Ker Sangri (dry)',         'Ker Sangri',       NULL,          'RAJASTHANI', 'VEGETABLE', 316.00, 13.00, 60.00,  4.00, 20.00, 'IFCT', now(), now()),
+
+            -- FRUITS
+            (gen_random_uuid(), 'Banana',                   'Kela',             'Vaazhai',     'PAN_INDIAN', 'FRUIT',      89.00,  1.10, 23.00,  0.30,  2.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Mango (Alphonso)',         'Aam',              'Manga',       'PAN_INDIAN', 'FRUIT',      60.00,  0.80, 15.00,  0.40,  1.60, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Apple',                    'Seb',              NULL,          'PAN_INDIAN', 'FRUIT',      52.00,  0.30, 13.80,  0.20,  2.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Papaya',                   'Papita',           NULL,          'PAN_INDIAN', 'FRUIT',      43.00,  0.50, 10.80,  0.30,  1.70, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Pomegranate (Anar)',        'Anar',             NULL,          'PAN_INDIAN', 'FRUIT',      83.00,  1.70, 18.70,  1.20,  4.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Guava (Amrood)',            'Amrood',           NULL,          'PAN_INDIAN', 'FRUIT',      68.00,  2.60, 14.30,  1.00,  5.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Orange (Santra)',           'Santra',           NULL,          'PAN_INDIAN', 'FRUIT',      47.00,  0.90, 11.80,  0.10,  2.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Watermelon (Tarbooz)',      'Tarbooz',          NULL,          'PAN_INDIAN', 'FRUIT',      30.00,  0.60,  7.60,  0.20,  0.40, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Grapes (Angoor)',           'Angoor',           NULL,          'PAN_INDIAN', 'FRUIT',      67.00,  0.60, 17.20,  0.40,  0.90, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chickoo / Sapodilla',      'Chikoo',           NULL,          'PAN_INDIAN', 'FRUIT',      83.00,  0.40, 19.90,  1.10,  5.30, 'IFCT', now(), now()),
+
+            -- DAIRY
+            (gen_random_uuid(), 'Full Cream Milk (cow)',    'Bhains Doodh',     NULL,          'PAN_INDIAN', 'DAIRY',      61.00,  3.20,  4.80,  3.40,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Toned Milk',               'Toned Doodh',      NULL,          'PAN_INDIAN', 'DAIRY',      53.00,  3.50,  5.00,  1.50,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Skimmed Milk',             'Skimmed Doodh',    NULL,          'PAN_INDIAN', 'DAIRY',      34.00,  3.40,  5.00,  0.10,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Curd / Yogurt (full fat)', 'Dahi',             NULL,          'PAN_INDIAN', 'DAIRY',      62.00,  3.50,  4.70,  3.30,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Low-Fat Curd',             'Low Fat Dahi',     NULL,          'PAN_INDIAN', 'DAIRY',      45.00,  4.30,  6.00,  0.20,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Ghee (clarified butter)',  'Ghee',             NULL,          'PAN_INDIAN', 'FAT',       900.00,  0.00,  0.00, 99.70,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Butter',                   'Makhan',           NULL,          'PAN_INDIAN', 'FAT',       717.00,  0.90,  0.10, 81.10,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Coconut (fresh, grated)',  'Nariyal',          'Thengai',     'SOUTH_INDIAN', 'DAIRY',   354.00,  3.30, 15.20, 33.50,  9.00, 'IFCT', now(), now()),
+
+            -- FATS & OILS
+            (gen_random_uuid(), 'Coconut Oil',              'Nariyal Tel',      NULL,          'SOUTH_INDIAN', 'FAT',     862.00,  0.00,  0.00,100.00,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Mustard Oil',              'Sarson Ka Tel',    NULL,          'PAN_INDIAN', 'FAT',       884.00,  0.00,  0.00,100.00,  0.00, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Groundnuts / Peanuts (roasted)', 'Moongphali', NULL,          'PAN_INDIAN', 'FAT',       567.00, 25.80, 16.10, 49.20,  8.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Almonds (Badam)',           'Badam',            NULL,          'PAN_INDIAN', 'FAT',       579.00, 21.20, 21.70, 49.90, 12.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Cashews (Kaju)',            'Kaju',             NULL,          'PAN_INDIAN', 'FAT',       553.00, 18.20, 30.20, 43.90,  3.30, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Walnuts (Akhrot)',          'Akhrot',           NULL,          'PAN_INDIAN', 'FAT',       654.00, 15.20, 13.70, 65.20,  6.70, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Flaxseeds (Alsi)',          'Alsi',             NULL,          'PAN_INDIAN', 'FAT',       534.00, 18.30, 28.90, 42.20, 27.30, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Chia Seeds',               'Chia Beej',        NULL,          'PAN_INDIAN', 'FAT',       486.00, 16.50, 42.10, 30.70, 34.40, 'IFCT', now(), now()),
+
+            -- BEVERAGES
+            (gen_random_uuid(), 'Coconut Water (tender)',   'Nariyal Paani',    'Elaneer',     'SOUTH_INDIAN', 'BEVERAGE',  19.00,  0.70,  3.70,  0.20,  1.10, 'IFCT', now(), now()),
+
+            -- SNACKS / SUPERFOODS
+            (gen_random_uuid(), 'Makhana (Fox Nuts, roasted)', 'Makhana',       NULL,          'PAN_INDIAN', 'OTHER',     347.00,  9.70, 76.90,  0.10, 14.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Roasted Chana (whole)',    'Bhuna Chana',      NULL,          'PAN_INDIAN', 'OTHER',     364.00, 22.50, 52.00,  6.00, 17.40, 'IFCT', now(), now()),
+
+            -- SPICES (per 100g, used in small quantities)
+            (gen_random_uuid(), 'Turmeric Powder (Haldi)',  'Haldi',            'Manjal',      'PAN_INDIAN', 'SPICE',     312.00,  9.70, 67.10,  3.30, 21.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Cumin Seeds (Jeera)',      'Jeera',            NULL,          'PAN_INDIAN', 'SPICE',     375.00, 17.80, 44.20, 22.30, 10.50, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Coriander Powder (Dhania)','Dhania',           NULL,          'PAN_INDIAN', 'SPICE',     298.00, 12.40, 55.00, 18.00, 41.90, 'IFCT', now(), now()),
+
+            -- BEVERAGES (continued)
+            (gen_random_uuid(), 'Sambar (cooked)',          'Sambar',           'Sambar',      'SOUTH_INDIAN', 'OTHER',    50.00,  3.20,  7.50,  1.20,  2.10, 'IFCT', now(), now()),
+            (gen_random_uuid(), 'Green Tea (brewed)',       'Green Chai',       NULL,          'PAN_INDIAN', 'BEVERAGE',   1.00,  0.20,  0.20,  0.00,  0.00, 'IFCT', now(), now());
+        </sql>
+
+        <rollback>
+            <sql>DELETE FROM food_items WHERE source = 'IFCT';</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

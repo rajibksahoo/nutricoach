@@ -18,4 +18,7 @@
     <include file="db/changelog/changes/010-create-ai-jobs.xml"/>
     <include file="db/changelog/changes/011-create-notification-logs.xml"/>
 
+    <!-- Week 2: Reference data -->
+    <include file="db/changelog/changes/012-seed-food-items.xml"/>
+
 </databaseChangeLog>
