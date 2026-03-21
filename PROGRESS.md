@@ -288,7 +288,9 @@
 | Coach dashboard API | 13 | Counts by status, needs-plan detection, recent 5 clients |
 | Progress logging + chart API | 15 | Upsert semantics, one log per client per day |
 | Check-in API | 15 | 409 on duplicate date, meal plan ownership verified |
-| Integration tests (34 total) | — | Auth×5, Client×7, Coach×6, Dashboard×5, Progress×15 (+ context load) |
+| Food item search API tests | 9 | FoodItemIntegrationTest (8 tests): search all/query/cuisine/category, getById, 404, 401 |
+| Meal plan builder API tests | 10 | MealPlanIntegrationTest (15 tests): full plan lifecycle, day/meal/item CRUD, nutrition calc, 401 |
+| Integration tests (57 total) | — | Auth×5, Client×7, Coach×6, Dashboard×5, Progress×15, FoodItem×8, MealPlan×15 (+ context load) |
 
 ---
 

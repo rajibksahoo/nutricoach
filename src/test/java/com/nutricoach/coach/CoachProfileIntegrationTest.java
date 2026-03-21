@@ -2,6 +2,7 @@ package com.nutricoach.coach;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nutricoach.AbstractIntegrationTest;
+import com.nutricoach.client.repository.ClientRepository;
 import com.nutricoach.coach.entity.Coach;
 import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
@@ -22,6 +23,7 @@ class CoachProfileIntegrationTest extends AbstractIntegrationTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired CoachRepository coachRepository;
+    @Autowired ClientRepository clientRepository;
     @Autowired JwtService jwtService;
 
     private String jwt;
@@ -29,11 +31,13 @@ class CoachProfileIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setup() {
-        coachRepository.findByPhone("9800000001")
-                .ifPresent(coachRepository::delete);
+        coachRepository.findByPhone("9500000001").ifPresent(existing -> {
+            clientRepository.deleteAll(clientRepository.findAllByCoachId(existing.getId()));
+            coachRepository.delete(existing);
+        });
 
         coach = coachRepository.save(Coach.builder()
-                .phone("9800000001")
+                .phone("9500000001")
                 .name("Rajib Coach")
                 .trialEndsAt(Instant.now().plusSeconds(14 * 24 * 3600L))
                 .build());
@@ -47,7 +51,7 @@ class CoachProfileIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.phone").value("9800000001"))
+                .andExpect(jsonPath("$.data.phone").value("9500000001"))
                 .andExpect(jsonPath("$.data.name").value("Rajib Coach"))
                 .andExpect(jsonPath("$.data.subscriptionTier").value("STARTER"))
                 .andExpect(jsonPath("$.data.subscriptionStatus").value("TRIAL"));
@@ -70,7 +74,7 @@ class CoachProfileIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.name").value("Rajib Updated"))
                 .andExpect(jsonPath("$.data.businessName").value("FitLife Nutrition"))
-                .andExpect(jsonPath("$.data.phone").value("9800000001")); // unchanged
+                .andExpect(jsonPath("$.data.phone").value("9500000001")); // unchanged
     }
 
     @Test
