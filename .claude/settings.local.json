@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker rm:*)",
+      "Bash(docker run:*)",
+      "Bash(docker exec:*)",
+      "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=AuthIntegrationTest)",
+      "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=ClientIntegrationTest)",
+      "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn clean test -Dtest=ClientIntegrationTest)",
+      "Bash(grep -n \"fk_clients_coach\\\\|ON DELETE\\\\|clients.*coach\\\\|coach.*clients\" src/main/resources/db/changelog/changes/*.xml)"
+    ]
+  }
+}
