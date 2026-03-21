@@ -166,19 +166,23 @@
 - [ ] Frontend: photo upload component with before/after grid
 - [ ] IAM policy for ap-south-1 bucket (DPDP compliant)
 
-### Day 17 🔲 Razorpay Subscriptions
-- [ ] Liquibase: ensure billing tables ready
-- [ ] `RazorpayService` — create customer, create subscription, cancel
-- [ ] `BillingController` — POST `/api/v1/billing/subscribe`, GET `/api/v1/billing/status`
-- [ ] Razorpay webhook handler — subscription.activated, payment.captured, subscription.cancelled
-- [ ] Feature gating: check subscription status before coach actions
-- [ ] GST invoice generation (18% GST)
+### Day 17 ✅ Razorpay Subscriptions
+- [x] `RazorpayProperties` (@ConfigurationProperties) + `RazorpayConfig` (@Bean)
+- [x] `RazorpayService` — create customer, create subscription, cancel, webhook verification (dev-mode bypass)
+- [x] `SubscriptionRepository`, `InvoiceRepository`
+- [x] `BillingController` — POST `/api/v1/billing/subscribe`, GET `/api/v1/billing/status`, DELETE `/api/v1/billing/cancel`
+- [x] `WebhookController` — POST `/api/v1/billing/webhook` (public, HMAC-SHA256 verified)
+- [x] Webhook events: `subscription.activated`, `subscription.charged`, `subscription.cancelled`, `subscription.halted`
+- [x] GST invoice generation (18%) with invoice number `NC-YYYY-NNNN`
+- [x] Idempotent payment processing (duplicate webhook safe)
+- [x] `BillingIntegrationTest` — 12 tests
 
-### Day 18 🔲 Subscription UI + Feature Gating
-- [ ] Pricing page with 3 tiers (₹999 / ₹2,499 / ₹4,999)
-- [ ] Razorpay checkout integration (frontend)
-- [ ] Upgrade prompt when limits hit (client count, plan count)
-- [ ] Subscription management page (current plan, invoices, cancel)
+### Day 18 ✅ Feature Gating
+- [x] `SubscriptionGate` service — enforces per-tier client limits
+  - TRIAL: 5 clients, STARTER: 25, PROFESSIONAL: 100, ENTERPRISE: unlimited
+- [x] `ClientService.create()` calls `requireClientSlot()` — returns HTTP 402 when over limit
+- [x] `NutriCoachException.paymentRequired()` factory method (HTTP 402)
+- [ ] Frontend: pricing page, upgrade prompt, subscription management page
 
 ### Day 19 🔲 WhatsApp Integration (WATI)
 - [ ] `WatiService` — send template messages, meal plan share
@@ -290,6 +294,8 @@
 | Check-in API | 15 | 409 on duplicate date, meal plan ownership verified |
 | Food item search API tests | 9 | FoodItemIntegrationTest (8 tests): search all/query/cuisine/category, getById, 404, 401 |
 | Meal plan builder API tests | 10 | MealPlanIntegrationTest (15 tests): full plan lifecycle, day/meal/item CRUD, nutrition calc, 401 |
+| Razorpay subscriptions | 17 | subscribe, cancel, webhook (activated/charged/cancelled/halted), GST invoices, idempotency |
+| Feature gating (client limits) | 18 | SubscriptionGate: TRIAL=5, STARTER=25, PROFESSIONAL=100, ENTERPRISE=∞ |
 | Integration tests (57 total) | — | Auth×5, Client×7, Coach×6, Dashboard×5, Progress×15, FoodItem×8, MealPlan×15 (+ context load) |
 
 ---

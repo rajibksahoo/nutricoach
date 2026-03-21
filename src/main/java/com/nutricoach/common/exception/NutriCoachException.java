@@ -30,4 +30,8 @@ public class NutriCoachException extends RuntimeException {
     public static NutriCoachException conflict(String message) {
         return new NutriCoachException(message, "CONFLICT", HttpStatus.CONFLICT);
     }
+
+    public static NutriCoachException paymentRequired(String message) {
+        return new NutriCoachException(message, "PAYMENT_REQUIRED", HttpStatus.PAYMENT_REQUIRED);
+    }
 }

@@ -54,6 +54,11 @@ app:
     key-id: ${RAZORPAY_KEY_ID}
     key-secret: ${RAZORPAY_KEY_SECRET}
     webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+    dev-mode: ${RAZORPAY_DEV_MODE:false}
+    plan-ids:
+      starter: ${RAZORPAY_PLAN_ID_STARTER}
+      professional: ${RAZORPAY_PLAN_ID_PROFESSIONAL}
+      enterprise: ${RAZORPAY_PLAN_ID_ENTERPRISE}
 
   aws:
     region: ap-south-1

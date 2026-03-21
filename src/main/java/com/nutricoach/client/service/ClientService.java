@@ -1,5 +1,6 @@
 package com.nutricoach.client.service;
 
+import com.nutricoach.billing.service.SubscriptionGate;
 import com.nutricoach.client.dto.ClientResponse;
 import com.nutricoach.client.dto.CreateClientRequest;
 import com.nutricoach.client.dto.UpdateClientRequest;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class ClientService {
 
     private final ClientRepository clientRepository;
+    private final SubscriptionGate subscriptionGate;
 
     @Transactional(readOnly = true)
     public List<ClientResponse> findAll(UUID coachId, Client.Status status) {
@@ -37,6 +39,8 @@ public class ClientService {
 
     @Transactional
     public ClientResponse create(CreateClientRequest req, UUID coachId) {
+        subscriptionGate.requireClientSlot(coachId);
+
         if (clientRepository.existsByCoachIdAndPhoneAndDeletedAtIsNull(coachId, req.phone())) {
             throw NutriCoachException.conflict("A client with this phone number already exists");
         }

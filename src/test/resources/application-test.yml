@@ -34,7 +34,12 @@ app:
   razorpay:
     key-id: rzp_test_dummy
     key-secret: dummy-secret
-    webhook-secret: dummy-webhook
+    webhook-secret: dummy-webhook-secret
+    dev-mode: true              # skips real Razorpay API calls in tests
+    plan-ids:
+      starter: plan_test_starter
+      professional: plan_test_professional
+      enterprise: plan_test_enterprise
 
   aws:
     s3:
