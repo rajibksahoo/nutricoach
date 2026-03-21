@@ -59,7 +59,7 @@ public class AuthService {
         msg91Service.sendOtp(phone, otp);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = NutriCoachException.class)
     public AuthResponse verifyOtp(String phone, String otp, String name) {
         OtpRequest otpRequest = otpRequestRepository.findTopByPhoneOrderByCreatedAtDesc(phone)
                 .orElseThrow(() -> NutriCoachException.badRequest("No OTP found for this number. Please request a new OTP."));

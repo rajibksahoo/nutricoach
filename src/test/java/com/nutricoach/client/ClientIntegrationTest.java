@@ -2,6 +2,7 @@ package com.nutricoach.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nutricoach.AbstractIntegrationTest;
+import com.nutricoach.client.repository.ClientRepository;
 import com.nutricoach.coach.entity.Coach;
 import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
@@ -22,6 +23,7 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired CoachRepository coachRepository;
+    @Autowired ClientRepository clientRepository;
     @Autowired JwtService jwtService;
 
     private String jwt;
@@ -30,8 +32,10 @@ class ClientIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setup() {
         // Create a coach directly (bypassing OTP for test isolation)
-        coachRepository.findByPhone("9000000001")
-                .ifPresent(coachRepository::delete);
+        coachRepository.findByPhone("9000000001").ifPresent(existing -> {
+            clientRepository.deleteAll(clientRepository.findAllByCoachId(existing.getId()));
+            coachRepository.delete(existing);
+        });
 
         coach = coachRepository.save(Coach.builder()
                 .phone("9000000001")

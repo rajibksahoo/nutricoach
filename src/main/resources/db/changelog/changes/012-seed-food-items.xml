@@ -36,7 +36,7 @@
             (gen_random_uuid(), 'Dal Baati (baked)',         'Dal Baati',        NULL,          'RAJASTHANI', 'GRAIN',    300.00,  7.90, 49.00,  8.70,  2.50, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Puran Poli',               'Puran Poli',       NULL,          'MAHARASHTRIAN', 'GRAIN',  255.00,  6.40, 46.00,  5.80,  2.70, 'IFCT', now(), now()),
 
-            -- PROTEINS — DALS & LEGUMES
+            -- PROTEINS — DALS &amp; LEGUMES
             (gen_random_uuid(), 'Toor Dal (cooked)',         'Arhar Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  116.00,  7.00, 20.70,  0.40,  5.30, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Moong Dal (cooked)',        'Moong Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  105.00,  7.40, 18.00,  0.40,  4.10, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Chana Dal (cooked)',        'Chana Dal',        NULL,          'PAN_INDIAN', 'PROTEIN',  164.00,  8.50, 27.30,  2.70,  4.80, 'IFCT', now(), now()),
@@ -104,7 +104,7 @@
             (gen_random_uuid(), 'Butter',                   'Makhan',           NULL,          'PAN_INDIAN', 'FAT',       717.00,  0.90,  0.10, 81.10,  0.00, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Coconut (fresh, grated)',  'Nariyal',          'Thengai',     'SOUTH_INDIAN', 'DAIRY',   354.00,  3.30, 15.20, 33.50,  9.00, 'IFCT', now(), now()),
 
-            -- FATS & OILS
+            -- FATS &amp; OILS
             (gen_random_uuid(), 'Coconut Oil',              'Nariyal Tel',      NULL,          'SOUTH_INDIAN', 'FAT',     862.00,  0.00,  0.00,100.00,  0.00, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Mustard Oil',              'Sarson Ka Tel',    NULL,          'PAN_INDIAN', 'FAT',       884.00,  0.00,  0.00,100.00,  0.00, 'IFCT', now(), now()),
             (gen_random_uuid(), 'Groundnuts / Peanuts (roasted)', 'Moongphali', NULL,          'PAN_INDIAN', 'FAT',       567.00, 25.80, 16.10, 49.20,  8.50, 'IFCT', now(), now()),

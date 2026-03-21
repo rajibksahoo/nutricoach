@@ -9,6 +9,7 @@ spring:
 
   liquibase:
     enabled: true               # Runs all 12 changesets against TC Postgres
+    change-log: classpath:db/changelog/db.changelog-master.xml
 
   jackson:
     default-property-inclusion: non_null
