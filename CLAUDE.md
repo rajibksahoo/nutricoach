@@ -1,4 +1,6 @@
-# NutriCoach — CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project
 B2B SaaS for nutritionists and fitness coaches in India.
@@ -20,10 +22,43 @@ Coaches pay monthly to manage clients, create meal plans, track progress, and ha
 | Messaging | MSG91 (OTP) + WATI (WhatsApp Business API) |
 | AI | Spring AI + OpenAI GPT-4o (async job pattern) |
 | Storage | AWS S3 ap-south-1 (Mumbai) |
-| Queue | BullMQ + Redis via Upstash |
 | Deploy | Railway (backend) + Vercel (frontend) + GitHub Actions |
 | Rate limiting | bucket4j |
 | Mobile (later) | React Native + Expo, Android-first |
+
+## Commands
+
+### Build
+```bash
+mvn clean package -DskipTests
+```
+
+### Run locally
+```bash
+mvn spring-boot:run
+```
+
+### Run all tests
+```bash
+# Start the test database first (Docker required)
+docker run -d --name pg-test -p 5433:5432 \
+  -e POSTGRES_DB=nutricoach_test \
+  -e POSTGRES_USER=nutricoach \
+  -e POSTGRES_PASSWORD=nutricoach \
+  postgres:16-alpine
+
+# Run all tests
+TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test
+
+# Run a single test class
+TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=AuthIntegrationTest
+
+# Reuse existing pg-test container between runs
+docker start pg-test
+```
+
+### IntelliJ test setup
+Add env var `TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test` via Run → Edit Configurations → Environment variables.
 
 ## Architecture — Modular Monolith
 Single deployable JAR. 8 Spring modules:
@@ -44,70 +79,80 @@ Each module has: `controller/`, `service/`, `repository/`, `entity/`, `dto/`
 
 Shared code lives in `com.nutricoach.common` (exception, response, security, config, entity).
 
-No microservices until a proven bottleneck.
+### Module implementation status
+| Module       | Entity | Repo | Service | Controller | Tests |
+|--------------|--------|------|---------|------------|-------|
+| auth         | ✓      | ✓    | ✓       | ✓          | ✓     |
+| coach        | ✓      | ✓    | —       | —          | —     |
+| client       | ✓      | ✓    | ✓       | ✓          | ✓     |
+| plans        | ✓      | ✓    | ✓       | ✓          | —     |
+| billing      | ✓      | —    | —       | —          | —     |
+| progress     | ✓      | —    | —       | —          | —     |
+| ai           | ✓      | —    | —       | —          | —     |
+| notifications| ✓      | —    | —       | —          | —     |
+
+## Code Patterns
+
+### Entities
+- All extend `BaseEntity` (UUID PK, `createdAt`/`updatedAt`, JPA auditing) — except `OtpRequest` (custom ID)
+- Soft deletes via `deletedAt Instant` — never hard delete
+- Enums as nested static inner classes: `Client.Status`, `MealPlan.Status`
+- Use **Lombok** (`@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`) — JPA requires mutable classes, records don't work with Hibernate
+
+### DTOs
+- Always **Java records** (immutable) — no Lombok needed, records provide canonical constructor, `equals`, `hashCode`, `toString`
+- Input: `CreateXxxRequest` / `UpdateXxxRequest` with `@Valid`
+- Output: `XxxResponse` — mapped via **MapStruct** only (`@Mapper(componentModel = "spring")`)
+- **Never use manual `from()` factory methods** — always MapStruct
+
+### Services
+- `@Transactional` for writes, `@Transactional(readOnly = true)` for reads
+- `@Transactional(noRollbackFor = NutriCoachException.class)` when state must persist on business error (e.g. OTP attempt counter)
+- Throw `NutriCoachException.notFound()` / `.badRequest()` / `.conflict()` — never return null or raw exceptions
+
+### Controllers
+- `@PreAuthorize("hasRole('COACH')")` at class level
+- Always return `ResponseEntity<ApiResponse<T>>`
+- HTTP status: `201 CREATED` for POST, `200 OK` for everything else
+- Get tenant identity via `SecurityUtils.getCurrentCoachId()` — never from request params
 
 ## Database Migrations — Liquibase XML ONLY
 - **Never use Flyway. Never use SQL migration files.**
 - Master file: `src/main/resources/db/changelog/db.changelog-master.xml`
 - Individual changesets: `src/main/resources/db/changelog/changes/NNN-description.xml`
 - Always include `<rollback>` blocks in every changeset
-- Naming: `001-create-coaches.xml`, `002-create-clients.xml`, etc.
+- Escape `&` as `&amp;` in XML comments
 
 ## Multi-Tenancy
 - Every table has `coach_id UUID NOT NULL` as tenant discriminator
-- Spring Security enforces tenant isolation at the service layer
-- Clients belong to exactly one coach
-- Never return cross-tenant data — enforce at repository or service level
-
-## API Conventions
-- Base path: `/api/v1/`
-- All responses wrapped in `ApiResponse<T>` (`success`, `message`, `data`, `errorCode`)
-- Validation errors: 400 with field messages joined by ", "
-- Auth errors: 401 `UNAUTHORIZED`, tenant violations: 403 `ACCESS_DENIED`
-- Business logic errors: use `NutriCoachException` with appropriate HTTP status
+- Every `@Repository` query must filter by `coachId`
+- Every `@Service` method must validate that the requesting coach owns the resource
+- Never return cross-tenant data
 
 ## Security
 - Phone-first auth (Indian market — no email required)
-- OTP via MSG91 → JWT on verify
+- OTP via MSG91 → JWT on verify (`dev-mode: true` in test profile prints OTP to logs)
 - JWT contains: `sub` (phone), `coachId` (UUID), `role`
-- JWT secret in `app.jwt.secret` (Base64-encoded), expiry in `app.jwt.expiry-hours`
 - Public endpoints: `/api/v1/auth/**`, `/actuator/health`, `/swagger-ui/**`, `/v3/api-docs/**`
 - `@EnableMethodSecurity` active — use `@PreAuthorize` for fine-grained control
+- Unauthenticated requests return `401` (configured via `AuthenticationEntryPoint`)
+
+## Testing
+- All integration tests extend `AbstractIntegrationTest`
+- Tests use a real PostgreSQL container (no H2, no mocks for DB)
+- `TEST_DB_URL` env var switches between manual container and Testcontainers auto-mode
+- `@BeforeEach` must delete child entities before parent entities (FK constraints)
+- Cover: 200/201 happy path, 400 validation, 401 no token, 403 wrong tenant, 404 not found, 409 conflict
 
 ## India-Specific Decisions
-- Phone-first (OTP), not email
 - Razorpay not Stripe (UPI support, INR settlement)
 - AWS Mumbai (ap-south-1) for DPDP Act 2023 data residency
 - Indian food database using IFCT data from NIN
-- Regional cuisines: South Indian, Gujarati, Punjabi, Jain, Bengali, Rajasthani, Maharashtrian, North-East
 - WhatsApp (WATI) for meal plan sharing and client reminders
-
-## UI/UX Direction (Next.js frontend)
-- Everfit-inspired 3-column layout
-- Left icon nav → sidebar status filter → main content → right context panel
-- Client status filters: "needs meal plan / low adherence / check-in due"
-- WhatsApp share button prominent in client context panel
-
-## 30-Day Plan
-| Week | Focus |
-|---|---|
-| 1 | Spring Boot scaffold, Liquibase schema, JWT+OTP auth, Next.js scaffold, Railway+Vercel deploy |
-| 2 | Client management, Indian food DB, meal plan builder, client portal, coach dashboard |
-| 3 | Progress logging, Razorpay subscriptions, WhatsApp reminders, feature gating |
-| 4 | Spring AI meal plan generation, branding, landing page, security hardening |
 
 ## Developer Notes
 - Solo founder, ~2 hours/day
 - Java/Spring Boot is the strongest skill — lean into it
 - Ask before making irreversible decisions (DB schema changes, API contract breaks, external service choices)
-- Prefer detailed, executable steps with specific commands
 - Keep it simple — no over-engineering, no speculative abstractions
-
-## Key Files
-| File | Purpose |
-|---|---|
-| `pom.xml` | Maven dependencies (Spring Boot 3.3.6, Java 21) |
-| `src/main/resources/application.yml` | App config (DB, JWT, external services) |
-| `src/main/resources/db/changelog/db.changelog-master.xml` | Liquibase master |
-| `src/main/java/com/nutricoach/NutriCoachApplication.java` | Entry point |
-| `src/main/java/com/nutricoach/common/` | Shared: security, exceptions, responses, base entity |
+- Run `/spring-boot-patterns` before implementing any new module for a full checklist

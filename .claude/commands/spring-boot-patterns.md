@@ -17,12 +17,12 @@ For each section relevant to the task, go through the checklist and flag any dev
 - [ ] Has `coach_id UUID NOT NULL` as tenant discriminator (every user-scoped table)
 - [ ] Soft deletes via `deletedAt Instant` column (never hard delete)
 - [ ] Enums as nested static inner classes (`Client.Status`, `MealPlan.Status`)
-- [ ] Lombok: `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`
+- [ ] **Lombok** `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder` — JPA needs mutable classes, do NOT use records for entities
 - [ ] Liquibase XML changeset in `changes/NNN-description.xml` with `<rollback>` block
 - [ ] DB indexes on: `coach_id`, `status`, `deleted_at`, all foreign keys
 
 ## DTO CHECKLIST
-- [ ] Use **Java records** (immutable) — no plain classes with setters
+- [ ] Use **Java records** (immutable) — no Lombok needed, no plain classes with setters
 - [ ] Input: `CreateXxxRequest`, `UpdateXxxRequest` with Jakarta `@Valid` annotations
 - [ ] Output: `XxxResponse` record — mapped via **MapStruct** (`@Mapper(componentModel = "spring")`)
 - [ ] **Never use manual `from()` factory methods** — always MapStruct (project rule)
