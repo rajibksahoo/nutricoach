@@ -11,12 +11,12 @@
 | Week | Theme | Status |
 |------|-------|--------|
 | Week 1 (Days 1–7) | Scaffold + Auth + Schema + Deploy | ✅ **Complete** |
-| Week 2 (Days 8–14) | Client Mgmt + Meal Plans + Dashboard | 🔲 Not started |
-| Week 3 (Days 15–21) | Progress + Billing + WhatsApp | 🔲 Not started |
+| Week 2 (Days 8–14) | Client Mgmt + Meal Plans + Dashboard | 🟡 **In Progress** |
+| Week 3 (Days 15–21) | Progress + Billing + WhatsApp | 🟡 **In Progress** |
 | Week 4 (Days 22–30) | AI + Branding + Launch | 🔲 Not started |
 
-**Current Day**: 1 (as of 2026-03-21)
-**Next task**: Week 2, Day 8 — Client management CRUD
+**Current Day**: ~15 (as of 2026-03-22)
+**Next task**: Week 3, Day 16 — S3 photo upload (presigned URLs) or Day 17 — Razorpay subscriptions
 
 ---
 
@@ -56,7 +56,7 @@
 - [x] `011-create-notification-logs.xml` — SMS + WhatsApp logs
 - [x] All entities: Coach, Client, MealPlan, MealPlanDay, Meal, MealItem, FoodItem, ProgressLog, ProgressPhoto, CheckIn, Subscription, Invoice, AiJob, NotificationLog
 
-### Days 3–7 🔲 Frontend Scaffold + CI/CD + Deploy
+### Days 3–7 🔲 Frontend Scaffold + CI/CD + Deploy (skipping — backend first)
 - [ ] **Day 3**: Next.js 14 + TypeScript scaffold
   - `npx create-next-app@latest frontend --typescript --tailwind --app`
   - Everfit-inspired 3-column layout shell
@@ -129,13 +129,17 @@
 - [ ] WhatsApp share button (deep link to client portal)
 - [ ] PDF export of meal plan
 
-### Day 13 🔲 Coach Dashboard
-- [ ] Dashboard API: `/api/v1/coach/dashboard`
-  - Active clients count, plans created, upcoming check-ins
-  - Client status breakdown (needs plan / low adherence / check-in due)
+### Day 13 ✅ Coach Profile + Dashboard API
+- [x] `UpdateCoachRequest` — name, email, businessName, gstin (with Indian GSTIN regex validation)
+- [x] `CoachResponse` — profile + subscription tier/status + trialEndsAt
+- [x] `CoachMapper` (MapStruct) — Coach → CoachResponse
+- [x] `CoachService` — getProfile, updateProfile (patch semantics)
+- [x] `CoachController` — GET/PUT `/api/v1/coach/me`, GET `/api/v1/coach/dashboard`
+- [x] `DashboardResponse` — totalClients, by-status counts, totalMealPlans, clientsNeedingPlan, recentClients (top 5)
+- [x] `DashboardService` — aggregates from ClientRepository + MealPlanRepository
+- [x] `CoachProfileIntegrationTest` — 6 tests (get, update, GSTIN validation, empty body)
+- [x] `DashboardIntegrationTest` — 5 tests (zeros, counts, needs-plan logic, recent 5, 401)
 - [ ] Frontend dashboard with 3-column Everfit layout
-- [ ] Client status filter sidebar (needs meal plan / low adherence / check-in due)
-- [ ] Right context panel for selected client
 
 ### Day 14 🔲 Buffer / Polish Week 2
 - [ ] Fix any bugs from Days 8–13
@@ -146,12 +150,15 @@
 
 ## Week 3 — Monetization + Engagement (Days 15–21)
 
-### Day 15 🔲 Progress Logging
-- [ ] `ProgressController` — POST/GET `/api/v1/clients/{id}/progress`
-- [ ] `CheckInController` — POST/GET `/api/v1/clients/{id}/check-ins`
-- [ ] `ProgressService` — save measurements, calculate adherence
-- [ ] Progress chart API (last 30/90 days)
-- [ ] Frontend: progress log form + chart visualization
+### Day 15 ✅ Progress Logging
+- [x] `ProgressController` — POST/GET `/api/v1/clients/{id}/progress`, GET `/chart?days=`
+- [x] `CheckInController` — POST/GET `/api/v1/clients/{id}/check-ins`
+- [x] `ProgressService` — upsert measurements (one per client per day), chart query
+- [x] `CheckInService` — create (409 on duplicate date), history descending
+- [x] `ProgressLogRepository`, `CheckInRepository` — all queries
+- [x] `LogProgressRequest`, `ProgressLogResponse`, `CreateCheckInRequest`, `CheckInResponse` (records)
+- [x] `ProgressMapper` (MapStruct) — ProgressLog + CheckIn → response
+- [x] `ProgressIntegrationTest` — 15 tests (progress CRUD, upsert, chart, check-in CRUD, 409 duplicate, 401)
 
 ### Day 16 🔲 Photo Upload (S3)
 - [ ] `S3Service` — presigned URL generation for upload + download
@@ -269,11 +276,19 @@
 | Spring Boot scaffold (8 modules) | 1 | Modular monolith, Java 21 |
 | OTP auth (send + verify) | 1 | MSG91, dev-mode logging |
 | JWT issuance | 1 | coachId + role claims, 72h expiry |
-| Spring Security (stateless) | 1 | JwtAuthenticationFilter |
+| Spring Security (stateless) | 1 | JwtAuthenticationFilter, 401 on missing token |
 | ApiResponse wrapper | 1 | |
 | GlobalExceptionHandler | 1 | |
 | Liquibase schema (11 changesets) | 2 | All tables, multi-tenant |
 | All JPA entities (14 total) | 2 | |
+| Client CRUD + soft delete | 8 | Multi-tenant, status filter, 409 on duplicate phone |
+| Indian food DB seed (100 items) | 9 | IFCT data, 8 cuisines, MapStruct mapper |
+| Meal plan builder API | 10 | 15 endpoints, nutrition auto-calc, no N+1 |
+| Coach profile API | 13 | GET/PUT /api/v1/coach/me, GSTIN validation |
+| Coach dashboard API | 13 | Counts by status, needs-plan detection, recent 5 clients |
+| Progress logging + chart API | 15 | Upsert semantics, one log per client per day |
+| Check-in API | 15 | 409 on duplicate date, meal plan ownership verified |
+| Integration tests (34 total) | — | Auth×5, Client×7, Coach×6, Dashboard×5, Progress×15 (+ context load) |
 
 ---
 

@@ -12,4 +12,6 @@ public interface MealPlanRepository extends JpaRepository<MealPlan, UUID> {
     List<MealPlan> findByClientIdAndCoachIdAndDeletedAtIsNull(UUID clientId, UUID coachId);
 
     Optional<MealPlan> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
+
+    long countByCoachIdAndDeletedAtIsNull(UUID coachId);
 }
