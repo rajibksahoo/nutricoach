@@ -69,6 +69,12 @@ public class AuthService {
 
     @Transactional(noRollbackFor = NutriCoachException.class)
     public AuthResponse verifyOtp(String phone, String otp, String name) {
+        // In dev mode, universal OTP bypasses all OTP state checks entirely
+        if (devMode && DEV_OTP.equals(otp)) {
+            log.info("[DEV] Universal OTP bypass for: {}", phone);
+            return issueTokenForCoach(phone, name);
+        }
+
         OtpRequest otpRequest = otpRequestRepository.findTopByPhoneOrderByCreatedAtDesc(phone)
                 .orElseThrow(() -> NutriCoachException.badRequest("No OTP found for this number. Please request a new OTP."));
 
@@ -84,8 +90,7 @@ public class AuthService {
             throw NutriCoachException.badRequest("Too many incorrect attempts. Please request a new OTP.");
         }
 
-        boolean otpCorrect = (devMode && DEV_OTP.equals(otp)) || passwordEncoder.matches(otp, otpRequest.getOtpHash());
-        if (!otpCorrect) {
+        if (!passwordEncoder.matches(otp, otpRequest.getOtpHash())) {
             otpRequest.setAttempts(otpRequest.getAttempts() + 1);
             otpRequestRepository.save(otpRequest);
             int remaining = MAX_VERIFY_ATTEMPTS - otpRequest.getAttempts();
@@ -95,25 +100,7 @@ public class AuthService {
         otpRequest.setVerified(true);
         otpRequestRepository.save(otpRequest);
 
-        boolean isNewCoach = !coachRepository.existsByPhone(phone);
-        Coach coach;
-
-        if (isNewCoach) {
-            String coachName = StringUtils.hasText(name) ? name.trim() : phone;
-            coach = Coach.builder()
-                    .phone(phone)
-                    .name(coachName)
-                    .trialEndsAt(Instant.now().plusSeconds(14 * 24 * 3600L)) // 14-day trial
-                    .build();
-            coachRepository.save(coach);
-            log.info("New coach registered: {}", phone);
-        } else {
-            coach = coachRepository.findByPhone(phone)
-                    .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
-        }
-
-        String token = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");
-        return new AuthResponse(token, coach.getId(), coach.getPhone(), isNewCoach);
+        return issueTokenForCoach(phone, name);
     }
 
     /**
@@ -126,25 +113,26 @@ public class AuthService {
         if (!devMode) {
             throw NutriCoachException.forbidden("Demo login is only available in dev mode");
         }
+        log.info("[DEV] Demo login for: {}", phone);
+        return issueTokenForCoach(phone, StringUtils.hasText(name) ? name : "Demo Coach");
+    }
 
+    private AuthResponse issueTokenForCoach(String phone, String name) {
         boolean isNewCoach = !coachRepository.existsByPhone(phone);
         Coach coach;
-
         if (isNewCoach) {
-            String coachName = StringUtils.hasText(name) ? name.trim() : "Demo Coach";
+            String coachName = StringUtils.hasText(name) ? name.trim() : phone;
             coach = Coach.builder()
                     .phone(phone)
                     .name(coachName)
                     .trialEndsAt(Instant.now().plusSeconds(14 * 24 * 3600L))
                     .build();
             coachRepository.save(coach);
-            log.info("[DEV] Demo account created: {}", phone);
+            log.info("New coach registered: {}", phone);
         } else {
             coach = coachRepository.findByPhone(phone)
                     .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
         }
-
-        log.info("[DEV] Demo login for: {}", phone);
         String token = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");
         return new AuthResponse(token, coach.getId(), coach.getPhone(), isNewCoach);
     }

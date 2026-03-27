@@ -35,8 +35,19 @@ mvn clean package -DskipTests
 
 ### Run locally
 ```bash
-mvn spring-boot:run
+# 1. Start the Docker test container (same one used for tests)
+docker start pg-test
+# or first time: docker run -d --name pg-test -p 5433:5432 -e POSTGRES_DB=nutricoach_test -e POSTGRES_USER=nutricoach -e POSTGRES_PASSWORD=nutricoach postgres:16-alpine
+
+# 2. Run backend — no env vars needed
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
+
+Dev mode features when running with `local` profile:
+- OTP is printed to console — use `111111` as universal bypass OTP
+- Razorpay API calls are skipped — dummy checkout URL returned
+- JWT expiry is 30 days — no re-login during development
+- SQL queries logged to console
 
 ### Run all tests
 ```bash
@@ -83,13 +94,17 @@ Shared code lives in `com.nutricoach.common` (exception, response, security, con
 | Module       | Entity | Repo | Service | Controller | Tests |
 |--------------|--------|------|---------|------------|-------|
 | auth         | ✓      | ✓    | ✓       | ✓          | ✓     |
-| coach        | ✓      | ✓    | —       | —          | —     |
+| coach        | ✓      | ✓    | ✓       | ✓          | ✓     |
 | client       | ✓      | ✓    | ✓       | ✓          | ✓     |
-| plans        | ✓      | ✓    | ✓       | ✓          | —     |
-| billing      | ✓      | —    | —       | —          | —     |
-| progress     | ✓      | —    | —       | —          | —     |
+| plans        | ✓      | ✓    | ✓       | ✓          | ✓     |
+| billing      | ✓      | ✓    | ✓       | ✓          | ✓     |
+| progress     | ✓      | ✓    | ✓       | ✓          | ✓     |
 | ai           | ✓      | —    | —       | —          | —     |
 | notifications| ✓      | —    | —       | —          | —     |
+
+**coach** has `CoachService` (profile, GSTIN validation) + `DashboardService` (analytics).
+**billing** has `BillingService` + `RazorpayService` (Razorpay SDK) + `SubscriptionGate` (feature gating per tier) + `WebhookController` (public endpoint, HMAC-verified). Tier limits: TRIAL=5 clients, STARTER=25, PROFESSIONAL=100, ENTERPRISE=∞.
+**progress** has `ProgressService` (measurements, S3 photos) + `CheckInService` (date-based adherence).
 
 ## Code Patterns
 
@@ -103,7 +118,9 @@ Shared code lives in `com.nutricoach.common` (exception, response, security, con
 - Always **Java records** (immutable) — no Lombok needed, records provide canonical constructor, `equals`, `hashCode`, `toString`
 - Input: `CreateXxxRequest` / `UpdateXxxRequest` with `@Valid`
 - Output: `XxxResponse` — mapped via **MapStruct** only (`@Mapper(componentModel = "spring")`)
+- Mappers live in `module/mapper/` package (e.g., `coach/mapper/CoachMapper.java`)
 - **Never use manual `from()` factory methods** — always MapStruct
+- Lombok annotation processor **must** be listed before MapStruct in `pom.xml` `annotationProcessorPaths`
 
 ### Services
 - `@Transactional` for writes, `@Transactional(readOnly = true)` for reads
