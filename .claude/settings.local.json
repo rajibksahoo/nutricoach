@@ -13,7 +13,9 @@
       "Bash(mvn compile:*)",
       "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=FoodItemIntegrationTest)",
       "Bash(mvn test-compile:*)",
-      "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=BillingIntegrationTest)"
+      "Bash(TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=BillingIntegrationTest)",
+      "Bash(npx create-next-app@latest nutricoach-web --typescript --tailwind --app --no-src-dir --import-alias \"@/*\" --no-eslint --turbopack --no-react-compiler)",
+      "Bash(xargs ls:*)"
     ]
   }
 }
