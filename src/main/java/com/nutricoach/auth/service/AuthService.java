@@ -9,6 +9,7 @@ import com.nutricoach.common.exception.NutriCoachException;
 import com.nutricoach.common.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,8 @@ public class AuthService {
     private static final int MAX_VERIFY_ATTEMPTS = 3;
     private static final int OTP_RESEND_COOLDOWN_SECONDS = 60;
 
+    private static final String DEV_OTP = "111111";
+
     private final OtpRequestRepository otpRequestRepository;
     private final CoachRepository coachRepository;
     private final Msg91Service msg91Service;
@@ -33,17 +36,22 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    @Value("${app.msg91.dev-mode:false}")
+    private boolean devMode;
+
     @Transactional
     public void sendOtp(String phone) {
-        // Enforce 60-second cooldown between sends
-        otpRequestRepository.findTopByPhoneOrderByCreatedAtDesc(phone)
-                .ifPresent(last -> {
-                    long secondsSinceLast = Instant.now().getEpochSecond() - last.getCreatedAt().getEpochSecond();
-                    if (secondsSinceLast < OTP_RESEND_COOLDOWN_SECONDS) {
-                        throw NutriCoachException.badRequest(
-                                "Please wait " + (OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLast) + " seconds before requesting a new OTP");
-                    }
-                });
+        // In dev-mode skip the cooldown so repeated testing isn't blocked
+        if (!devMode) {
+            otpRequestRepository.findTopByPhoneOrderByCreatedAtDesc(phone)
+                    .ifPresent(last -> {
+                        long secondsSinceLast = Instant.now().getEpochSecond() - last.getCreatedAt().getEpochSecond();
+                        if (secondsSinceLast < OTP_RESEND_COOLDOWN_SECONDS) {
+                            throw NutriCoachException.badRequest(
+                                    "Please wait " + (OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLast) + " seconds before requesting a new OTP");
+                        }
+                    });
+        }
 
         // Clean up old unverified OTPs for this phone
         otpRequestRepository.deleteUnverifiedByPhone(phone);
@@ -76,7 +84,8 @@ public class AuthService {
             throw NutriCoachException.badRequest("Too many incorrect attempts. Please request a new OTP.");
         }
 
-        if (!passwordEncoder.matches(otp, otpRequest.getOtpHash())) {
+        boolean otpCorrect = (devMode && DEV_OTP.equals(otp)) || passwordEncoder.matches(otp, otpRequest.getOtpHash());
+        if (!otpCorrect) {
             otpRequest.setAttempts(otpRequest.getAttempts() + 1);
             otpRequestRepository.save(otpRequest);
             int remaining = MAX_VERIFY_ATTEMPTS - otpRequest.getAttempts();
@@ -103,6 +112,39 @@ public class AuthService {
                     .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
         }
 
+        String token = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");
+        return new AuthResponse(token, coach.getId(), coach.getPhone(), isNewCoach);
+    }
+
+    /**
+     * Demo login — issues a JWT directly without OTP verification.
+     * Only available when {@code app.msg91.dev-mode=true} (local/test profiles).
+     * Calling this in production returns 403.
+     */
+    @Transactional
+    public AuthResponse demoLogin(String phone, String name) {
+        if (!devMode) {
+            throw NutriCoachException.forbidden("Demo login is only available in dev mode");
+        }
+
+        boolean isNewCoach = !coachRepository.existsByPhone(phone);
+        Coach coach;
+
+        if (isNewCoach) {
+            String coachName = StringUtils.hasText(name) ? name.trim() : "Demo Coach";
+            coach = Coach.builder()
+                    .phone(phone)
+                    .name(coachName)
+                    .trialEndsAt(Instant.now().plusSeconds(14 * 24 * 3600L))
+                    .build();
+            coachRepository.save(coach);
+            log.info("[DEV] Demo account created: {}", phone);
+        } else {
+            coach = coachRepository.findByPhone(phone)
+                    .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
+        }
+
+        log.info("[DEV] Demo login for: {}", phone);
         String token = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");
         return new AuthResponse(token, coach.getId(), coach.getPhone(), isNewCoach);
     }

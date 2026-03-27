@@ -1,6 +1,7 @@
 package com.nutricoach.auth.controller;
 
 import com.nutricoach.auth.dto.AuthResponse;
+import com.nutricoach.auth.dto.DemoLoginRequest;
 import com.nutricoach.auth.dto.SendOtpRequest;
 import com.nutricoach.auth.dto.VerifyOtpRequest;
 import com.nutricoach.auth.service.AuthService;
@@ -35,6 +36,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         AuthResponse response = authService.verifyOtp(request.phone(), request.otp(), request.name());
         String message = response.isNewCoach() ? "Welcome to NutriCoach!" : "Login successful";
+        return ResponseEntity.ok(ApiResponse.ok(message, response));
+    }
+
+    @PostMapping("/demo-login")
+    @Operation(
+        summary = "Demo login (dev only)",
+        description = "Bypasses OTP and issues a JWT directly. Only works when app.msg91.dev-mode=true. Returns 403 in production."
+    )
+    public ResponseEntity<ApiResponse<AuthResponse>> demoLogin(@Valid @RequestBody DemoLoginRequest request) {
+        AuthResponse response = authService.demoLogin(request.phone(), request.name());
+        String message = response.isNewCoach() ? "Demo account created" : "Demo login successful";
         return ResponseEntity.ok(ApiResponse.ok(message, response));
     }
 }
