@@ -16,7 +16,7 @@ Coaches pay monthly to manage clients, create meal plans, track progress, and ha
 |---|---|
 | Backend | Java 21 + Spring Boot 3.3 (modular monolith) |
 | Database | PostgreSQL via Supabase + Liquibase XML migrations |
-| Frontend | Next.js 14 + TypeScript |
+| Frontend | Next.js 16 + TypeScript |
 | API contract | springdoc-openapi → openapi-typescript |
 | Payments | Razorpay (UPI, INR, GST invoicing) |
 | Messaging | MSG91 (OTP) + WATI (WhatsApp Business API) |
@@ -113,6 +113,7 @@ Shared code lives in `com.nutricoach.common` (exception, response, security, con
 - Soft deletes via `deletedAt Instant` — never hard delete
 - Enums as nested static inner classes: `Client.Status`, `MealPlan.Status`
 - Use **Lombok** (`@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`) — JPA requires mutable classes, records don't work with Hibernate
+- Package name is `entity`, never `domain` (e.g. `com.nutricoach.client.entity`, not `com.nutricoach.client.domain`)
 
 ### DTOs
 - Always **Java records** (immutable) — no Lombok needed, records provide canonical constructor, `equals`, `hashCode`, `toString`
@@ -160,6 +161,7 @@ Shared code lives in `com.nutricoach.common` (exception, response, security, con
 - `TEST_DB_URL` env var switches between manual container and Testcontainers auto-mode
 - `@BeforeEach` must delete child entities before parent entities (FK constraints)
 - Cover: 200/201 happy path, 400 validation, 401 no token, 403 wrong tenant, 404 not found, 409 conflict
+- After modifying any constructor, service dependency, or Spring Bean, check and update all test files that mock or instantiate that class before committing
 
 ## India-Specific Decisions
 - Razorpay not Stripe (UPI support, INR settlement)
