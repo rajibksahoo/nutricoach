@@ -51,25 +51,26 @@ Dev mode features when running with `local` profile:
 
 ### Run all tests
 ```bash
-# Start the test database first (Docker required)
+# Start the test database first (one-time Docker setup)
 docker run -d --name pg-test -p 5433:5432 \
   -e POSTGRES_DB=nutricoach_test \
   -e POSTGRES_USER=nutricoach \
   -e POSTGRES_PASSWORD=nutricoach \
   postgres:16-alpine
 
-# Run all tests
-TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test
+# Run all tests — no env vars needed, datasource is in application-test.yml
+docker start pg-test
+mvn test
 
 # Run a single test class
-TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test mvn test -Dtest=AuthIntegrationTest
-
-# Reuse existing pg-test container between runs
-docker start pg-test
+mvn test -Dtest=AuthIntegrationTest
 ```
 
 ### IntelliJ test setup
-Add env var `TEST_DB_URL=jdbc:postgresql://localhost:5433/nutricoach_test` via Run → Edit Configurations → Environment variables.
+Just start `pg-test` and click Run — no env var configuration needed.
+The datasource URL (`localhost:5433`) lives in `src/test/resources/application-test.yml`.
+
+CI override: set `TEST_DB_URL` env var to point at a CI-managed PostgreSQL instance.
 
 ## Architecture — Modular Monolith
 Single deployable JAR. 8 Spring modules:

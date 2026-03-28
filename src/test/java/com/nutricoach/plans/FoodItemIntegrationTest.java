@@ -6,6 +6,8 @@ import com.nutricoach.coach.entity.Coach;
 import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
 import com.nutricoach.plans.repository.FoodItemRepository;
+import com.nutricoach.progress.repository.ProgressLogRepository;
+import com.nutricoach.progress.repository.ProgressPhotoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,8 @@ class FoodItemIntegrationTest extends AbstractIntegrationTest {
     @Autowired CoachRepository coachRepository;
     @Autowired ClientRepository clientRepository;
     @Autowired FoodItemRepository foodItemRepository;
+    @Autowired ProgressLogRepository progressLogRepository;
+    @Autowired ProgressPhotoRepository progressPhotoRepository;
     @Autowired JwtService jwtService;
 
     private String jwt;
@@ -30,6 +34,13 @@ class FoodItemIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setup() {
         coachRepository.findByPhone("9700000001").ifPresent(existing -> {
+            clientRepository.findAllByCoachId(existing.getId()).forEach(c -> {
+                progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId())
+                        .forEach(l -> progressPhotoRepository.deleteAll(
+                                progressPhotoRepository.findByCoachIdAndProgressLogIdOrderByCreatedAtAsc(existing.getId(), l.getId())));
+                progressLogRepository.deleteAll(
+                        progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId()));
+            });
             clientRepository.deleteAll(clientRepository.findAllByCoachId(existing.getId()));
             coachRepository.delete(existing);
         });

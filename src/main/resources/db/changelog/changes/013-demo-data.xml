@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <changeSet id="013-demo-data" author="nutricoach" context="local">
+
+        <!-- Demo coach -->
+        <insert tableName="coaches">
+            <column name="id"                  value="00000000-0000-0000-0000-000000000001"/>
+            <column name="phone"               value="9999999999"/>
+            <column name="name"                value="Demo Coach"/>
+            <column name="subscription_tier"   value="PROFESSIONAL"/>
+            <column name="subscription_status" value="ACTIVE"/>
+            <column name="trial_ends_at"       value="2099-12-31 00:00:00+00"/>
+            <column name="created_at"          valueComputed="now()"/>
+            <column name="updated_at"          valueComputed="now()"/>
+        </insert>
+
+        <!-- Client 1: Priya Sharma -->
+        <insert tableName="clients">
+            <column name="id"           value="00000000-0000-0000-0000-000000000002"/>
+            <column name="coach_id"     value="00000000-0000-0000-0000-000000000001"/>
+            <column name="phone"        value="8888888881"/>
+            <column name="name"         value="Priya Sharma"/>
+            <column name="goal"         value="WEIGHT_LOSS"/>
+            <column name="dietary_pref" value="VEG"/>
+            <column name="status"       value="ACTIVE"/>
+            <column name="height_cm"    valueNumeric="162"/>
+            <column name="weight_kg"    valueNumeric="72.5"/>
+            <column name="created_at"   valueComputed="now()"/>
+            <column name="updated_at"   valueComputed="now()"/>
+        </insert>
+
+        <!-- Client 2: Rahul Mehta -->
+        <insert tableName="clients">
+            <column name="id"           value="00000000-0000-0000-0000-000000000003"/>
+            <column name="coach_id"     value="00000000-0000-0000-0000-000000000001"/>
+            <column name="phone"        value="8888888882"/>
+            <column name="name"         value="Rahul Mehta"/>
+            <column name="goal"         value="MUSCLE_GAIN"/>
+            <column name="dietary_pref" value="NON_VEG"/>
+            <column name="status"       value="ACTIVE"/>
+            <column name="height_cm"    valueNumeric="178"/>
+            <column name="weight_kg"    valueNumeric="68.0"/>
+            <column name="created_at"   valueComputed="now()"/>
+            <column name="updated_at"   valueComputed="now()"/>
+        </insert>
+
+        <!-- Client 3: Anita Patel -->
+        <insert tableName="clients">
+            <column name="id"           value="00000000-0000-0000-0000-000000000004"/>
+            <column name="coach_id"     value="00000000-0000-0000-0000-000000000001"/>
+            <column name="phone"        value="8888888883"/>
+            <column name="name"         value="Anita Patel"/>
+            <column name="goal"         value="MAINTENANCE"/>
+            <column name="dietary_pref" value="VEGAN"/>
+            <column name="status"       value="ONBOARDING"/>
+            <column name="height_cm"    valueNumeric="155"/>
+            <column name="weight_kg"    valueNumeric="58.0"/>
+            <column name="created_at"   valueComputed="now()"/>
+            <column name="updated_at"   valueComputed="now()"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="clients">
+                <where>coach_id = '00000000-0000-0000-0000-000000000001'</where>
+            </delete>
+            <delete tableName="coaches">
+                <where>id = '00000000-0000-0000-0000-000000000001'</where>
+            </delete>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>

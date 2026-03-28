@@ -50,7 +50,7 @@ public class RazorpayService {
      */
     public String[] createSubscription(String razorpayCustomerId, Subscription.PlanTier tier) {
         if (props.isDevMode()) {
-            String subId = "sub_dev_" + tier.name().toLowerCase();
+            String subId = "sub_dev_" + tier.name().toLowerCase() + "_" + java.util.UUID.randomUUID().toString().substring(0, 8);
             String url = "https://rzp.io/dev/" + subId;
             log.info("[DEV] Razorpay subscription created: {} → {}", subId, url);
             return new String[]{subId, url};
