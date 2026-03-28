@@ -8,7 +8,10 @@ import com.nutricoach.coach.entity.Coach;
 import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
 import com.nutricoach.plans.entity.MealPlan;
+import com.nutricoach.plans.repository.MealPlanDayRepository;
 import com.nutricoach.plans.repository.MealPlanRepository;
+import com.nutricoach.progress.repository.ProgressLogRepository;
+import com.nutricoach.progress.repository.ProgressPhotoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,9 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
     @Autowired CoachRepository coachRepository;
     @Autowired ClientRepository clientRepository;
     @Autowired MealPlanRepository mealPlanRepository;
+    @Autowired MealPlanDayRepository mealPlanDayRepository;
+    @Autowired ProgressLogRepository progressLogRepository;
+    @Autowired ProgressPhotoRepository progressPhotoRepository;
     @Autowired JwtService jwtService;
 
     private String jwt;
@@ -34,10 +40,22 @@ class DashboardIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setup() {
         coachRepository.findByPhone("9700000001").ifPresent(existing -> {
-            clientRepository.findAllByCoachId(existing.getId())
-                    .forEach(c -> mealPlanRepository
-                            .findByClientIdAndCoachIdAndDeletedAtIsNull(c.getId(), existing.getId())
-                            .forEach(mealPlanRepository::delete));
+            clientRepository.findAllByCoachId(existing.getId()).forEach(c -> {
+                // Delete progress photos → logs
+                progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId())
+                        .forEach(l -> progressPhotoRepository.deleteAll(
+                                progressPhotoRepository.findByCoachIdAndProgressLogIdOrderByCreatedAtAsc(existing.getId(), l.getId())));
+                progressLogRepository.deleteAll(
+                        progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId()));
+                // Delete meal plan days → plans
+                mealPlanRepository.findAll().stream()
+                        .filter(p -> p.getCoachId().equals(existing.getId()) && p.getClientId().equals(c.getId()))
+                        .forEach(plan -> {
+                            mealPlanDayRepository.deleteAll(
+                                    mealPlanDayRepository.findByMealPlanIdOrderByDayNumber(plan.getId()));
+                            mealPlanRepository.delete(plan);
+                        });
+            });
             clientRepository.deleteAll(clientRepository.findAllByCoachId(existing.getId()));
             coachRepository.delete(existing);
         });

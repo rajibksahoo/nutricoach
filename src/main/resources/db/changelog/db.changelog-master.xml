@@ -21,4 +21,7 @@
     <!-- Week 2: Reference data -->
     <include file="db/changelog/changes/012-seed-food-items.xml"/>
 
+    <!-- Local dev: demo data (context="local" — never runs in prod/test) -->
+    <include file="db/changelog/changes/013-demo-data.xml" context="local"/>
+
 </databaseChangeLog>

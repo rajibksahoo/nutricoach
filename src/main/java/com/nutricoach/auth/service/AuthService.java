@@ -34,6 +34,7 @@ public class AuthService {
     private final Msg91Service msg91Service;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final RateLimiterService rateLimiterService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Value("${app.msg91.dev-mode:false}")
@@ -41,6 +42,8 @@ public class AuthService {
 
     @Transactional
     public void sendOtp(String phone) {
+        rateLimiterService.checkOtpSendLimit(phone);
+
         // In dev-mode skip the cooldown so repeated testing isn't blocked
         if (!devMode) {
             otpRequestRepository.findTopByPhoneOrderByCreatedAtDesc(phone)
@@ -69,6 +72,8 @@ public class AuthService {
 
     @Transactional(noRollbackFor = NutriCoachException.class)
     public AuthResponse verifyOtp(String phone, String otp, String name) {
+        rateLimiterService.checkOtpVerifyLimit(phone);
+
         // In dev mode, universal OTP bypasses all OTP state checks entirely
         if (devMode && DEV_OTP.equals(otp)) {
             log.info("[DEV] Universal OTP bypass for: {}", phone);
@@ -134,7 +139,8 @@ public class AuthService {
                     .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
         }
         String token = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");
-        return new AuthResponse(token, coach.getId(), coach.getPhone(), isNewCoach);
+        return new AuthResponse(token, coach.getId(), coach.getPhone(),
+                coach.getName(), coach.getSubscriptionTier(), coach.getSubscriptionStatus(), isNewCoach);
     }
 
     private String generateOtp() {

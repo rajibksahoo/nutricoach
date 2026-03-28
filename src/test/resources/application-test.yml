@@ -1,57 +1,47 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/nutricoach_test
+    driver-class-name: org.postgresql.Driver
+    username: nutricoach
+    password: nutricoach
   jpa:
     hibernate:
-      ddl-auto: validate        # Liquibase still owns schema, same as prod
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
+      ddl-auto: validate          # Liquibase owns the schema — Hibernate only validates
+    open-in-view: false
+    show-sql: false
   liquibase:
-    enabled: true               # Runs all 12 changesets against TC Postgres
+    enabled: true
+    drop-first: true              # Drop schema and re-apply all changesets — clean state every run
     change-log: classpath:db/changelog/db.changelog-master.xml
 
-  jackson:
-    default-property-inclusion: non_null
-    serialization:
-      write-dates-as-timestamps: false
-
 app:
+  cors:
+    allowed-origins: http://localhost:3000
   jwt:
-    # base64("nutricoach-test-jwt-secret-key!!") — 32 bytes, valid for HS256
     secret: bnV0cmljb2FjaC10ZXN0LWp3dC1zZWNyZXQta2V5ISE=
     expiry-hours: 1
-
   msg91:
-    auth-key: test-auth-key
-    template-id: test-template-id
-    dev-mode: true              # OTP printed to logs, no real SMS
-
+    auth-key: test
+    template-id: test
+    sender-id: TEST
+    dev-mode: false               # keep cooldown active — AuthIntegrationTest checks it
   wati:
-    api-endpoint: http://localhost:9999
-    api-token: test-wati-token
-
+    api-endpoint: http://localhost
+    api-token: local-test-token   # "local-" prefix → WatiService skips real API calls
   razorpay:
-    key-id: rzp_test_dummy
-    key-secret: dummy-secret
-    webhook-secret: dummy-webhook-secret
-    dev-mode: true              # skips real Razorpay API calls in tests
+    key-id: test
+    key-secret: test
+    webhook-secret: test
+    dev-mode: true                # always use stub — avoids real Razorpay calls and duplicate sub IDs
     plan-ids:
       starter: plan_test_starter
       professional: plan_test_professional
       enterprise: plan_test_enterprise
-
   aws:
+    region: ap-south-1
     s3:
-      bucket: nutricoach-test-bucket
-    access-key: test-access-key
-    secret-key: test-secret-key
-
+      bucket: test-bucket
+    access-key: local-test-key    # "local-" prefix → S3Service skips real AWS calls
+    secret-key: local-test-secret
   openai:
-    api-key: test-openai-key
-
-logging:
-  level:
-    com.nutricoach: DEBUG
-    org.springframework.security: WARN
-    org.hibernate.SQL: DEBUG
+    api-key: local-test-key       # "local-" prefix → AiMealPlanService uses stub response

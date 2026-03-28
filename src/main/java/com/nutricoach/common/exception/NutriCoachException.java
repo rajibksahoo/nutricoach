@@ -38,4 +38,8 @@ public class NutriCoachException extends RuntimeException {
     public static NutriCoachException paymentRequired(String message) {
         return new NutriCoachException(message, "PAYMENT_REQUIRED", HttpStatus.PAYMENT_REQUIRED);
     }
+
+    public static NutriCoachException tooManyRequests(String message) {
+        return new NutriCoachException(message, "TOO_MANY_REQUESTS", HttpStatus.TOO_MANY_REQUESTS);
+    }
 }

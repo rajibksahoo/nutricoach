@@ -16,4 +16,6 @@ public interface ProgressLogRepository extends JpaRepository<ProgressLog, UUID> 
             UUID clientId, UUID coachId, LocalDate from, LocalDate to);
 
     Optional<ProgressLog> findByClientIdAndCoachIdAndLoggedDate(UUID clientId, UUID coachId, LocalDate loggedDate);
+
+    Optional<ProgressLog> findByIdAndCoachId(UUID id, UUID coachId);
 }

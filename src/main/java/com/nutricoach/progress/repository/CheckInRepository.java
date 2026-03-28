@@ -15,4 +15,6 @@ public interface CheckInRepository extends JpaRepository<CheckIn, UUID> {
     Optional<CheckIn> findByClientIdAndCoachIdAndCheckInDate(UUID clientId, UUID coachId, LocalDate checkInDate);
 
     boolean existsByClientIdAndCoachIdAndCheckInDate(UUID clientId, UUID coachId, LocalDate checkInDate);
+
+    boolean existsByClientIdAndCheckInDateAfter(UUID clientId, LocalDate date);
 }

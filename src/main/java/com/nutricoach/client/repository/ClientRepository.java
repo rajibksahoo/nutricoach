@@ -15,6 +15,8 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
 
     List<Client> findByCoachIdAndStatusAndDeletedAtIsNull(UUID coachId, Client.Status status);
 
+    List<Client> findAllByStatusAndDeletedAtIsNull(Client.Status status);
+
     Optional<Client> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
 
     boolean existsByCoachIdAndPhoneAndDeletedAtIsNull(UUID coachId, String phone);
