@@ -51,12 +51,15 @@ Dev mode features when running with `local` profile:
 
 ### Run all tests
 ```bash
-# Start the test database first (one-time Docker setup)
+# One-time Docker setup — creates container with TWO databases:
+#   nutricoach_test    → local dev app (application-local.yml)
+#   nutricoach_test_it → integration tests (application-test.yml)
 docker run -d --name pg-test -p 5433:5432 \
   -e POSTGRES_DB=nutricoach_test \
   -e POSTGRES_USER=nutricoach \
   -e POSTGRES_PASSWORD=nutricoach \
   postgres:16-alpine
+docker exec pg-test psql -U nutricoach -d nutricoach_test -c "CREATE DATABASE nutricoach_test_it;"
 
 # Run all tests — no env vars needed, datasource is in application-test.yml
 docker start pg-test
