@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.HashMap;
 
 @Slf4j
 @Service
@@ -35,6 +36,20 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateClientToken(String phone, UUID clientId, UUID coachId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("clientId", clientId.toString());
+        claims.put("coachId", coachId.toString());
+        claims.put("role", "ROLE_CLIENT");
+        return Jwts.builder()
+                .subject(phone)
+                .claims(claims)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiryHours * 3600 * 1000))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
     public String extractPhone(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -42,6 +57,17 @@ public class JwtService {
     public UUID extractCoachId(String token) {
         String coachId = extractClaim(token, claims -> claims.get("coachId", String.class));
         return UUID.fromString(coachId);
+    }
+
+    /** Returns the role claim, or "ROLE_COACH" if absent (backward-compat with old tokens). */
+    public String extractRole(String token) {
+        String role = extractClaim(token, claims -> claims.get("role", String.class));
+        return (role != null) ? role : "ROLE_COACH";
+    }
+
+    public UUID extractClientId(String token) {
+        String clientId = extractClaim(token, claims -> claims.get("clientId", String.class));
+        return UUID.fromString(clientId);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {

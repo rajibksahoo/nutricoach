@@ -24,4 +24,7 @@
     <!-- Local dev: demo data (context="local" — never runs in prod/test) -->
     <include file="db/changelog/changes/013-demo-data.xml" context="local"/>
 
+    <!-- Week 3: Client portal -->
+    <include file="db/changelog/changes/014-client-portal-index.xml"/>
+
 </databaseChangeLog>
