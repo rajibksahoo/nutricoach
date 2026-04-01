@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Index to speed up client portal auth: lookup by phone during OTP verify -->
+    <changeSet id="014-client-portal-phone-index" author="nutricoach">
+        <createIndex tableName="clients" indexName="idx_clients_phone_deleted_at">
+            <column name="phone"/>
+            <column name="deleted_at"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="clients" indexName="idx_clients_phone_deleted_at"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,7 +1,6 @@
 package com.nutricoach.auth.service;
 
-import com.nutricoach.coach.entity.Coach;
-import com.nutricoach.coach.repository.CoachRepository;
+import com.nutricoach.client.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -12,21 +11,22 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service("coachUserDetailsService")
+@Service("clientUserDetailsService")
 @RequiredArgsConstructor
-public class CoachUserDetailsService implements UserDetailsService {
+public class ClientUserDetailsService implements UserDetailsService {
 
-    private final CoachRepository coachRepository;
+    private final ClientRepository clientRepository;
 
     @Override
     public UserDetails loadUserByUsername(String phone) throws UsernameNotFoundException {
-        Coach coach = coachRepository.findByPhone(phone)
-                .orElseThrow(() -> new UsernameNotFoundException("Coach not found: " + phone));
-
+        boolean exists = clientRepository.existsByPhoneAndDeletedAtIsNull(phone);
+        if (!exists) {
+            throw new UsernameNotFoundException("Client not found: " + phone);
+        }
         return User.builder()
-                .username(coach.getPhone())
-                .password("")   // password-less — auth is OTP → JWT
-                .authorities(List.of(new SimpleGrantedAuthority("ROLE_COACH")))
+                .username(phone)
+                .password("")
+                .authorities(List.of(new SimpleGrantedAuthority("ROLE_CLIENT")))
                 .build();
     }
 }

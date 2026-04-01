@@ -32,4 +32,9 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
     @Query("SELECT c FROM Client c WHERE c.coachId = :coachId AND c.deletedAt IS NULL " +
            "AND NOT EXISTS (SELECT mp FROM MealPlan mp WHERE mp.clientId = c.id AND mp.deletedAt IS NULL)")
     List<Client> findClientsWithoutMealPlan(@Param("coachId") UUID coachId);
+
+    // Client portal auth
+    Optional<Client> findByPhoneAndCoachIdAndDeletedAtIsNull(String phone, UUID coachId);
+
+    boolean existsByPhoneAndDeletedAtIsNull(String phone);
 }
