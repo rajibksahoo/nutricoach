@@ -60,12 +60,21 @@ public class MealPlanService {
     @Transactional(readOnly = true)
     public MealPlanResponse getFullPlan(UUID planId, UUID coachId) {
         MealPlan plan = requirePlanOwned(planId, coachId);
-        List<MealPlanDay> days = dayRepository.findByMealPlanIdOrderByDayNumber(planId);
+        return buildFullResponse(plan);
+    }
 
-        List<MealPlanDayResponse> dayResponses = days.stream()
-                .map(day -> buildDayResponse(day))
-                .toList();
+    /** Client portal variant — verifies planId belongs to both clientId AND coachId. */
+    @Transactional(readOnly = true)
+    public MealPlanResponse getFullPlanForClient(UUID planId, UUID clientId, UUID coachId) {
+        MealPlan plan = mealPlanRepository
+                .findByIdAndClientIdAndCoachIdAndDeletedAtIsNull(planId, clientId, coachId)
+                .orElseThrow(() -> NutriCoachException.notFound("Meal plan not found"));
+        return buildFullResponse(plan);
+    }
 
+    private MealPlanResponse buildFullResponse(MealPlan plan) {
+        List<MealPlanDay> days = dayRepository.findByMealPlanIdOrderByDayNumber(plan.getId());
+        List<MealPlanDayResponse> dayResponses = days.stream().map(this::buildDayResponse).toList();
         return new MealPlanResponse(
                 plan.getId(), plan.getClientId(), plan.getName(), plan.getDescription(),
                 plan.getStartDate(), plan.getEndDate(), plan.getStatus(),

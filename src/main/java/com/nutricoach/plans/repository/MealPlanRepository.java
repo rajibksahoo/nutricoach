@@ -13,5 +13,8 @@ public interface MealPlanRepository extends JpaRepository<MealPlan, UUID> {
 
     Optional<MealPlan> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
 
+    // Client portal — verifies plan belongs to both the client and coach
+    Optional<MealPlan> findByIdAndClientIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID clientId, UUID coachId);
+
     long countByCoachIdAndDeletedAtIsNull(UUID coachId);
 }
