@@ -10,13 +10,15 @@
 
 | Week | Theme | Status |
 |------|-------|--------|
-| Week 1 (Days 1–7) | Scaffold + Auth + Schema + Deploy | ✅ **Complete** |
-| Week 2 (Days 8–14) | Client Mgmt + Meal Plans + Dashboard | 🟡 **In Progress** |
-| Week 3 (Days 15–21) | Progress + Billing + WhatsApp | 🟡 **In Progress** |
-| Week 4 (Days 22–30) | AI + Branding + Launch | 🔲 Not started |
+| Week 1 (Days 1–7) | Scaffold + Auth + Schema + Deploy | ✅ **Complete** (frontend scaffold deferred, now done on web repo) |
+| Week 2 (Days 8–14) | Client Mgmt + Meal Plans + Dashboard | ✅ **Backend complete** (frontend on `nutricoach-web`) |
+| Week 3 (Days 15–21) | Progress + Billing + WhatsApp | ✅ **Backend complete** |
+| Week 4 (Days 22–30) | AI + Branding + Launch | 🟡 **In Progress** (Days 22, 26 done; 23–30 mostly pending) |
 
-**Current Day**: ~15 (as of 2026-03-22)
-**Next task**: Week 3, Day 16 — S3 photo upload (presigned URLs) or Day 17 — Razorpay subscriptions
+**Current Day**: ~27 (as of 2026-04-09)
+**Next task**: Wire frontend AI generate button + WhatsApp share → then Day 23 polish, Day 25 branding, Day 27 monitoring
+
+**Bonus delivered (not in original 30-day plan)**: Client Portal — separate client-role JWT auth (Phase 1) + read-only portal endpoints under `/api/v1/portal/*` (Phase 2). On branch `feat/client-portal-auth`, awaiting PR.
 
 ---
 
@@ -160,11 +162,16 @@
 - [x] `ProgressMapper` (MapStruct) — ProgressLog + CheckIn → response
 - [x] `ProgressIntegrationTest` — 15 tests (progress CRUD, upsert, chart, check-in CRUD, 409 duplicate, 401)
 
-### Day 16 🔲 Photo Upload (S3)
-- [ ] `S3Service` — presigned URL generation for upload + download
-- [ ] `ProgressPhotoController` — POST (get presigned URL), GET (view photos)
-- [ ] Frontend: photo upload component with before/after grid
-- [ ] IAM policy for ap-south-1 bucket (DPDP compliant)
+### Day 16 ✅ Photo Upload (S3)
+- [x] `S3Service` — presigned PUT (upload) + GET (download), 10-min TTL
+- [x] `S3Config` + `AwsProperties` (`@ConfigurationProperties`)
+- [x] `ProgressPhotoController` — POST `/api/v1/clients/{id}/progress/{logId}/photos` (presigned URL), GET (list), DELETE
+- [x] `ProgressPhotoRepository`
+- [x] Local dev mode: returns dummy URLs without hitting AWS
+- [x] AWS SDK v2 (`s3`, `sts`) added to pom.xml
+- [x] `ProgressPhotoIntegrationTest`
+- [x] Frontend: photo upload component with FRONT/SIDE/BACK grid (on `nutricoach-web`)
+- [ ] IAM policy for ap-south-1 bucket (deferred until first deploy)
 
 ### Day 17 ✅ Razorpay Subscriptions
 - [x] `RazorpayProperties` (@ConfigurationProperties) + `RazorpayConfig` (@Bean)
@@ -184,18 +191,22 @@
 - [x] `NutriCoachException.paymentRequired()` factory method (HTTP 402)
 - [ ] Frontend: pricing page, upgrade prompt, subscription management page
 
-### Day 19 🔲 WhatsApp Integration (WATI)
-- [ ] `WatiService` — send template messages, meal plan share
-- [ ] `NotificationService` — unified SMS + WhatsApp abstraction
-- [ ] Meal plan WhatsApp share flow
-- [ ] Check-in reminder scheduler (@Scheduled daily at 8 AM IST)
-- [ ] Notification log persistence
+### Day 19 ✅ WhatsApp Integration (WATI)
+- [x] `WatiService` — send template + text messages via WATI API
+- [x] `NotificationService` — unified SMS + WhatsApp abstraction over MSG91 + WATI
+- [x] `MealPlanShareController` — POST `/api/v1/meal-plans/{id}/share` (WhatsApp deep link to client)
+- [x] `NotificationLogRepository` — persists every send (channel, recipient, status, providerRef)
+- [x] Local dev mode: logs to console + returns mock provider ID
+- [x] `MealPlanShareIntegrationTest` (full share flow + 401/403/404 paths)
+- [ ] Frontend: WhatsApp share button on meal plan page (next task)
 
-### Day 20 🔲 Client Check-in Reminders
-- [ ] Automated weekly check-in reminders via WhatsApp
-- [ ] Coach alert: "3 clients haven't checked in this week"
-- [ ] Low adherence detection (< 70% → flag in dashboard)
-- [ ] In-app notification feed
+### Day 20 ✅ Client Check-in Reminders
+- [x] `CheckInReminderScheduler` — `@Scheduled(cron = "0 30 2 * * *", zone = "UTC")` runs daily 8 AM IST
+- [x] Sends WhatsApp reminder to ACTIVE clients with no check-in in last 7 days
+- [x] De-dup: skip if a reminder was already sent within 24h
+- [x] All sends logged via `NotificationService` → `notification_logs`
+- [ ] Coach alert: "3 clients haven't checked in this week" (Day 27 dashboard polish)
+- [ ] Low adherence detection (< 70% → flag in dashboard) (Day 27 dashboard polish)
 
 ### Day 21 🔲 Buffer / Polish Week 3
 - [ ] End-to-end billing flow test
@@ -207,26 +218,31 @@
 
 ## Week 4 — AI + Launch (Days 22–30)
 
-### Day 22 🔲 Spring AI — Meal Plan Generation (Backend)
-- [ ] Add `spring-ai-openai-spring-boot-starter` to pom.xml
-- [ ] `AiMealPlanService` — async GPT-4o job submission
-- [ ] Prompt engineering: client profile → 7-day Indian meal plan JSON
-- [ ] `AiJobController` — POST `/api/v1/ai/meal-plans/generate`, GET `/api/v1/ai/jobs/{id}`
-- [ ] Poll-based status check (PENDING → PROCESSING → COMPLETED/FAILED)
-- [ ] Parse GPT-4o JSON response into MealPlan entities
+### Day 22 ✅ AI — Meal Plan Generation (Backend)
+> **Architectural divergence**: implemented with raw OpenAI `RestClient` instead of `spring-ai-openai-spring-boot-starter`. Reason: avoids one more dependency at MVP stage; the async job pattern isolates the LLM call so swapping to Spring AI later is a one-class change.
+- [x] `OpenAiProperties` (`@ConfigurationProperties`) — endpoint, key, model
+- [x] `AiMealPlanService` — `@Async` GPT-4o job submission via `RestClient`
+- [x] Prompt engineering: client profile → 7-day Indian meal plan JSON
+- [x] `AiJobController` — POST `/api/v1/ai/meal-plans/generate`, GET `/api/v1/ai/jobs/{id}`
+- [x] Poll-based status check (PENDING → PROCESSING → COMPLETED/FAILED)
+- [x] Parses GPT-4o JSON response into `MealPlan` + day/meal/item entities
+- [x] Local dev mode: returns hardcoded 7-day Indian plan without calling OpenAI
+- [x] `AiJobRepository`, `AiJob` entity (status + result JSONB)
+- [x] `AiJobIntegrationTest` (Awaitility async polling)
 
-### Day 23 🔲 AI Meal Plan Generation (Frontend)
-- [ ] "Generate with AI" button in meal plan builder
+### Day 23 🟡 AI Meal Plan Generation (Frontend)
+- [x] "Generate with AI" modal scaffolded in meal plan builder
+- [ ] Wire modal to backend `POST /api/v1/ai/meal-plans/generate` (currently shows toast stub)
 - [ ] Client profile summary sent to AI (goals, dietary prefs, allergies)
-- [ ] Loading state with job polling
+- [ ] Loading state with job polling on `GET /api/v1/ai/jobs/{id}`
 - [ ] Generated plan preview + edit before saving
 
-### Day 24 🔲 Landing Page
-- [ ] Next.js landing page at `/`
-- [ ] Hero: "The nutrition platform built for Indian coaches"
-- [ ] Feature highlights: meal plans, client management, WhatsApp sharing
-- [ ] Pricing section (3 tiers)
-- [ ] CTA: "Start free trial" → phone OTP → coach dashboard
+### Day 24 ✅ Landing Page (on `nutricoach-web`)
+- [x] Next.js 16 landing page at `/`
+- [x] Hero section with primary CTA
+- [x] 6 feature cards
+- [x] 3-tier pricing comparison
+- [x] Sticky navbar with "Start Free Trial" → phone OTP → coach dashboard
 - [ ] Mobile-responsive
 
 ### Day 25 🔲 Branding + Polish
@@ -236,12 +252,15 @@
 - [ ] Error boundaries + friendly error messages
 - [ ] Toast notifications (success/error)
 
-### Day 26 🔲 Security Hardening
-- [ ] Rate limiting with bucket4j on auth endpoints (5 OTP/hour per phone)
+### Day 26 🟡 Security Hardening (rate limiting done, rest pending)
+- [x] `RateLimiterService` (bucket4j) — 5 OTP sends/hour/phone, 10 verify attempts/hour/phone
+- [x] Wired into `AuthService`; throws `NutriCoachException.tooManyRequests()` (HTTP 429)
+- [x] `RateLimiterServiceTest` (unit, in-memory bucket state)
+- [x] `bucket4j-core` 8.10.1 in pom.xml
 - [ ] Input sanitization audit
-- [ ] SQL injection prevention review
+- [ ] SQL injection prevention review (JPA params already safe; spot-check JPQL)
 - [ ] JWT expiry + refresh token flow
-- [ ] HTTPS enforcement
+- [ ] HTTPS enforcement (Railway level)
 - [ ] Security headers (CORS, CSP, HSTS)
 
 ### Day 27 🔲 Performance + Monitoring
@@ -271,6 +290,29 @@
 
 ---
 
+## Bonus — Client Portal (not in original 30-day plan)
+
+> Branch: `feat/client-portal-auth` (pushed, awaiting PR — not yet in `master`). Adds a separate client-facing surface so clients can log in and view their own meal plans / progress without going through the coach.
+
+### Phase 1 ✅ Client-role auth
+- [x] `ClientAuthService` + `ClientAuthController` — phone OTP login for clients
+- [x] `JwtService.generateClientToken()` — claims: `sub` (phone), `clientId`, `coachId`, `role=CLIENT`
+- [x] `ClientUserDetailsService` — looks up clients by phone
+- [x] Dual-role JWT routing in `JwtAuthenticationFilter` (COACH vs CLIENT)
+- [x] `SecurityUtils.getCurrentClientId()` + `getCurrentCoachIdFromToken()`
+- [x] DB index on `clients(phone, deleted_at)` for auth performance
+- [x] `ClientAuthIntegrationTest` (9 tests)
+
+### Phase 2 ✅ Read-only portal endpoints (`ROLE_CLIENT` scoped)
+- [x] `ClientProfileController` — GET `/api/v1/portal/profile`
+- [x] `ClientMealPlanController` — GET `/api/v1/portal/meal-plans`, GET `/api/v1/portal/meal-plans/{id}`
+- [x] `ClientProgressController` — GET `/api/v1/portal/progress`, GET `/api/v1/portal/progress/chart`
+- [x] `ClientCheckInController` — GET `/api/v1/portal/check-ins`
+- [x] All controllers verify `clientId` + `coachId` ownership: 403 cross-tenant, 404 cross-client
+- [x] `ClientPortalIntegrationTest`
+
+---
+
 ## Completed Features (Running Log)
 
 > **Mapping convention:** Use MapStruct `@Mapper(componentModel = "spring")` for all DTO↔entity conversions. Place in `module/mapper/` package. For patch ops: `@BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)`.
@@ -296,7 +338,15 @@
 | Meal plan builder API tests | 10 | MealPlanIntegrationTest (15 tests): full plan lifecycle, day/meal/item CRUD, nutrition calc, 401 |
 | Razorpay subscriptions | 17 | subscribe, cancel, webhook (activated/charged/cancelled/halted), GST invoices, idempotency |
 | Feature gating (client limits) | 18 | SubscriptionGate: TRIAL=5, STARTER=25, PROFESSIONAL=100, ENTERPRISE=∞ |
-| Integration tests (57 total) | — | Auth×5, Client×7, Coach×6, Dashboard×5, Progress×15, FoodItem×8, MealPlan×15 (+ context load) |
+| S3 photo upload (presigned URLs) | 16 | S3Service, ProgressPhotoController, FRONT/SIDE/BACK photo types, dev-mode dummy URLs |
+| WATI WhatsApp integration | 19 | WatiService, NotificationService, MealPlanShareController, NotificationLog persistence |
+| Check-in reminder scheduler | 20 | CheckInReminderScheduler, daily 8 AM IST, 7-day inactivity trigger, 24h de-dup |
+| AI meal plan generation | 22 | Async @Async pattern, raw OpenAI RestClient (NOT Spring AI), AiJob polling, dev-mode hardcoded plan |
+| Rate limiting (bucket4j) | 26 | RateLimiterService: 5 OTP/hr, 10 verify/hr per phone, HTTP 429 |
+| Demo data seed | bonus | 013-demo-data.xml — local-profile demo coach + clients |
+| Client Portal auth (Phase 1) | bonus | Separate ROLE_CLIENT JWT, ClientAuthService, dual-role JwtAuthenticationFilter |
+| Client Portal read endpoints (Phase 2) | bonus | /api/v1/portal/* — profile, meal-plans, progress, check-ins (read-only) |
+| Integration tests (~14 files) | — | Auth, ClientAuth, Coach, Dashboard, Progress, FoodItem, MealPlan, Billing, ProgressPhoto, MealPlanShare, AiJob, ClientPortal + base |
 
 ---
 
