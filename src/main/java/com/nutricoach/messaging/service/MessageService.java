@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,14 +27,17 @@ public class MessageService {
     private final ClientRepository clientRepository;
     private final MessageMapper messageMapper;
 
-    /** Returns all conversations for a coach, sorted by most recent message. */
+    /** Returns all clients for a coach as conversations, sorted by most recent message (clients with no messages appear last). */
     @Transactional(readOnly = true)
     public List<ConversationSummaryResponse> getConversations(UUID coachId) {
-        List<UUID> clientIds = messageRepository.findDistinctClientIdsByCoachId(coachId);
+        List<Client> clients = clientRepository.findByCoachIdAndDeletedAtIsNull(coachId);
 
-        return clientIds.stream()
-                .map(clientId -> buildSummary(coachId, clientId))
-                .sorted(Comparator.comparing(ConversationSummaryResponse::lastMessageAt).reversed())
+        return clients.stream()
+                .map(client -> buildSummary(coachId, client))
+                .sorted(Comparator.comparing(
+                        ConversationSummaryResponse::lastMessageAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
                 .toList();
     }
 
@@ -66,22 +70,18 @@ public class MessageService {
 
     // ── private helpers ───────────────────────────────────────────────────────
 
-    private ConversationSummaryResponse buildSummary(UUID coachId, UUID clientId) {
-        Client client = clientRepository.findByIdAndCoachIdAndDeletedAtIsNull(clientId, coachId)
-                .orElseThrow(() -> NutriCoachException.notFound("Client not found"));
-
-        Message latest = messageRepository.findLatestByCoachIdAndClientId(coachId, clientId)
-                .orElseThrow(() -> NutriCoachException.notFound("No messages found"));
-
-        long unread = messageRepository.countUnreadByCoachIdAndClientId(coachId, clientId);
+    private ConversationSummaryResponse buildSummary(UUID coachId, Client client) {
+        Optional<Message> latest =
+                messageRepository.findLatestByCoachIdAndClientId(coachId, client.getId());
+        long unread = messageRepository.countUnreadByCoachIdAndClientId(coachId, client.getId());
 
         return new ConversationSummaryResponse(
-                clientId,
+                client.getId(),
                 client.getName(),
                 client.getPhone(),
-                latest.getContent(),
-                latest.getSenderType(),
-                latest.getCreatedAt(),
+                latest.map(Message::getContent).orElse(null),
+                latest.map(Message::getSenderType).orElse(null),
+                latest.map(Message::getCreatedAt).orElse(null),
                 unread
         );
     }
