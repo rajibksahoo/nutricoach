@@ -42,7 +42,7 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             @Param("coachId") UUID coachId,
             @Param("clientId") UUID clientId);
 
-    /** Mark all client messages in a conversation as read. */
+    /** Mark all client messages in a conversation as read (called when coach opens the thread). */
     @Modifying
     @Query("""
         UPDATE Message m SET m.readAt = :now
@@ -50,6 +50,18 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
           AND m.senderType = 'CLIENT' AND m.readAt IS NULL
         """)
     void markAllAsRead(
+            @Param("coachId") UUID coachId,
+            @Param("clientId") UUID clientId,
+            @Param("now") Instant now);
+
+    /** Mark all coach messages in a conversation as read (called when client opens the thread). */
+    @Modifying
+    @Query("""
+        UPDATE Message m SET m.readAt = :now
+        WHERE m.coachId = :coachId AND m.clientId = :clientId
+          AND m.senderType = 'COACH' AND m.readAt IS NULL
+        """)
+    void markCoachMessagesAsRead(
             @Param("coachId") UUID coachId,
             @Param("clientId") UUID clientId,
             @Param("now") Instant now);

@@ -68,6 +68,28 @@ public class MessageService {
         return messageMapper.toResponse(messageRepository.save(message));
     }
 
+    /** Client opens their thread: fetch messages + mark coach's messages as read. */
+    @Transactional
+    public List<MessageResponse> getMessagesForClient(UUID clientId, UUID coachId) {
+        messageRepository.markCoachMessagesAsRead(coachId, clientId, Instant.now());
+        return messageRepository.findByCoachIdAndClientIdOrderByCreatedAtAsc(coachId, clientId)
+                .stream()
+                .map(messageMapper::toResponse)
+                .toList();
+    }
+
+    /** Client sends a message to their coach. */
+    @Transactional
+    public MessageResponse sendMessageFromClient(UUID clientId, UUID coachId, SendMessageRequest request) {
+        Message message = Message.builder()
+                .coachId(coachId)
+                .clientId(clientId)
+                .senderType(Message.SenderType.CLIENT)
+                .content(request.content().trim())
+                .build();
+        return messageMapper.toResponse(messageRepository.save(message));
+    }
+
     // ── private helpers ───────────────────────────────────────────────────────
 
     private ConversationSummaryResponse buildSummary(UUID coachId, Client client) {
