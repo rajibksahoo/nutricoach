@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- Direct messages between coach and client (in-app messaging) -->
+    <changeSet id="015-create-messages" author="nutricoach">
+        <createTable tableName="messages">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+            <!-- COACH or CLIENT -->
+            <column name="sender_type" type="varchar(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="content" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <!-- null = unread -->
+            <column name="read_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- FK to coaches -->
+        <addForeignKeyConstraint
+                baseTableName="messages" baseColumnNames="coach_id"
+                referencedTableName="coaches" referencedColumnNames="id"
+                constraintName="fk_messages_coach"
+                onDelete="CASCADE"/>
+
+        <!-- FK to clients -->
+        <addForeignKeyConstraint
+                baseTableName="messages" baseColumnNames="client_id"
+                referencedTableName="clients" referencedColumnNames="id"
+                constraintName="fk_messages_client"
+                onDelete="CASCADE"/>
+
+        <!-- Fast conversation thread lookup -->
+        <createIndex tableName="messages" indexName="idx_messages_coach_client_created">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+            <column name="created_at" descending="true"/>
+        </createIndex>
+
+        <!-- Fast unread count per conversation -->
+        <createIndex tableName="messages" indexName="idx_messages_unread">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+            <column name="read_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="messages" indexName="idx_messages_unread"/>
+            <dropIndex tableName="messages" indexName="idx_messages_coach_client_created"/>
+            <dropForeignKeyConstraint baseTableName="messages" constraintName="fk_messages_client"/>
+            <dropForeignKeyConstraint baseTableName="messages" constraintName="fk_messages_coach"/>
+            <dropTable tableName="messages"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
