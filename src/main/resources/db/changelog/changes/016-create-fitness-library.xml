@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Fitness library: coach-owned Exercises, Workouts, Programs         -->
+    <!-- ================================================================= -->
+
+    <changeSet id="016-create-exercises" author="nutricoach">
+        <createTable tableName="exercises">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_exercises_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="muscle_group" type="varchar(50)"/>
+            <column name="equipment" type="varchar(80)"/>
+            <column name="video_url" type="varchar(500)"/>
+            <column name="notes" type="text"/>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="exercises" indexName="idx_exercises_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="exercises"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-workout-sections" author="nutricoach">
+        <createTable tableName="workout_sections">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_workout_sections_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="section_type" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="workout_sections" indexName="idx_workout_sections_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE workout_sections
+                ADD CONSTRAINT chk_workout_sections_type
+                CHECK (section_type IN ('WARM_UP','MAIN','COOL_DOWN'));
+        </sql>
+
+        <rollback>
+            <dropTable tableName="workout_sections"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-workout-section-exercises" author="nutricoach">
+        <createTable tableName="workout_section_exercises">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="section_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wse_section"
+                             references="workout_sections(id)"/>
+            </column>
+            <column name="exercise_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wse_exercise"
+                             references="exercises(id)"/>
+            </column>
+            <column name="position" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sets" type="int"/>
+            <column name="reps" type="int"/>
+            <column name="duration_seconds" type="int"/>
+            <column name="rest_seconds" type="int"/>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="workout_section_exercises" indexName="idx_wse_section_id">
+            <column name="section_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="workout_section_exercises"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-workouts" author="nutricoach">
+        <createTable tableName="workouts">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_workouts_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="estimated_duration_minutes" type="int"/>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="workouts" indexName="idx_workouts_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="workouts"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-workout-section-assignments" author="nutricoach">
+        <createTable tableName="workout_section_assignments">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="workout_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wsa_workout"
+                             references="workouts(id)"/>
+            </column>
+            <column name="section_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_wsa_section"
+                             references="workout_sections(id)"/>
+            </column>
+            <column name="position" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="workout_section_assignments" indexName="idx_wsa_workout_id">
+            <column name="workout_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="workout_section_assignments"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-programs" author="nutricoach">
+        <createTable tableName="programs">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_programs_coach"
+                             references="coaches(id)"/>
+            </column>
+            <column name="name" type="varchar(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="duration_days" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="programs" indexName="idx_programs_coach_id">
+            <column name="coach_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE programs
+                ADD CONSTRAINT chk_programs_duration
+                CHECK (duration_days BETWEEN 1 AND 365);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="programs"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="016-create-program-days" author="nutricoach">
+        <createTable tableName="program_days">
+            <column name="id" type="uuid" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="program_id" type="uuid">
+                <constraints nullable="false"
+                             foreignKeyName="fk_program_days_program"
+                             references="programs(id)"/>
+            </column>
+            <column name="day_number" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="workout_id" type="uuid">
+                <constraints foreignKeyName="fk_program_days_workout"
+                             references="workouts(id)"/>
+            </column>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="program_days" indexName="idx_program_days_program_id">
+            <column name="program_id"/>
+        </createIndex>
+
+        <sql>
+            ALTER TABLE program_days
+                ADD CONSTRAINT uq_program_days_program_day UNIQUE (program_id, day_number);
+            ALTER TABLE program_days
+                ADD CONSTRAINT chk_program_days_day_number CHECK (day_number >= 1);
+        </sql>
+
+        <rollback>
+            <dropTable tableName="program_days"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
