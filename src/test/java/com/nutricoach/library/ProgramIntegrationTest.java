@@ -172,9 +172,83 @@ class ProgramIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    private String createProgram(String name, int durationDays) throws Exception {
-        String response = mockMvc.perform(post("/api/v1/library/programs")
+    @Test
+    void list_authenticated_returnsCoachPrograms() throws Exception {
+        createProgram("Week 1 Strength", 7);
+        createProgram("12-Week Cut", 84);
+
+        mockMvc.perform(get("/api/v1/library/programs")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2));
+    }
+
+    @Test
+    void get_byId_returnsProgram() throws Exception {
+        String id = createProgram("Get Test Program", 14);
+
+        mockMvc.perform(get("/api/v1/library/programs/{id}", id)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Get Test Program"))
+                .andExpect(jsonPath("$.data.durationDays").value(14))
+                .andExpect(jsonPath("$.data.days").isArray());
+    }
+
+    @Test
+    void update_patchesName() throws Exception {
+        String id = createProgram("Old Program Name", 21);
+
+        mockMvc.perform(put("/api/v1/library/programs/{id}", id)
                         .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("name", "Updated Name"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Updated Name"))
+                .andExpect(jsonPath("$.data.durationDays").value(21));
+    }
+
+    @Test
+    void delete_softDelete_notInList() throws Exception {
+        String id = createProgram("Delete Me", 7);
+
+        mockMvc.perform(delete("/api/v1/library/programs/{id}", id)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/library/programs")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void get_otherCoachProgram_returns404() throws Exception {
+        Coach other = coachRepository.save(Coach.builder()
+                .phone("9800030099").name("Other Coach")
+                .trialEndsAt(java.time.Instant.now().plusSeconds(86400L))
+                .build());
+        String otherJwt = jwtService.generateToken(other.getPhone(), other.getId(), "ROLE_COACH");
+        String otherId = createProgramWithJwt("Other Program", 10, otherJwt);
+
+        mockMvc.perform(get("/api/v1/library/programs/{id}", otherId)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNotFound());
+
+        programDayRepository.deleteAll(
+                programDayRepository.findByProgramIdOrderByDayNumberAsc(UUID.fromString(otherId)));
+        programRepository.deleteAll(programRepository.findAll().stream()
+                .filter(p -> p.getCoachId().equals(other.getId())).toList());
+        coachRepository.delete(other);
+    }
+
+    private String createProgram(String name, int durationDays) throws Exception {
+        return createProgramWithJwt(name, durationDays, jwt);
+    }
+
+    private String createProgramWithJwt(String name, int durationDays, String token) throws Exception {
+        String response = mockMvc.perform(post("/api/v1/library/programs")
+                        .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "name", name, "durationDays", durationDays))))
