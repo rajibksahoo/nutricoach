@@ -331,4 +331,74 @@ class BillingIntegrationTest extends AbstractIntegrationTest {
                         ))))
                 .andExpect(status().isCreated());
     }
+
+    @Test
+    void webhook_subscriptionCancelled_updatesCoachStatus() throws Exception {
+        mockMvc.perform(post("/api/v1/billing/subscribe")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("planTier", "STARTER"))))
+                .andExpect(status().isCreated());
+
+        String razorpaySubId = subscriptionRepository
+                .findTopByCoachIdOrderByCreatedAtDesc(coach.getId())
+                .map(Subscription::getRazorpaySubscriptionId)
+                .orElseThrow();
+
+        String webhookPayload = """
+                {
+                  "event": "subscription.cancelled",
+                  "payload": {
+                    "subscription": {
+                      "entity": { "id": "%s" }
+                    }
+                  }
+                }
+                """.formatted(razorpaySubId);
+
+        mockMvc.perform(post("/api/v1/billing/webhook")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(webhookPayload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/billing/status")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+    }
+
+    @Test
+    void webhook_subscriptionHalted_updatesCoachStatusToPastDue() throws Exception {
+        mockMvc.perform(post("/api/v1/billing/subscribe")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("planTier", "PROFESSIONAL"))))
+                .andExpect(status().isCreated());
+
+        String razorpaySubId = subscriptionRepository
+                .findTopByCoachIdOrderByCreatedAtDesc(coach.getId())
+                .map(Subscription::getRazorpaySubscriptionId)
+                .orElseThrow();
+
+        String webhookPayload = """
+                {
+                  "event": "subscription.halted",
+                  "payload": {
+                    "subscription": {
+                      "entity": { "id": "%s" }
+                    }
+                  }
+                }
+                """.formatted(razorpaySubId);
+
+        mockMvc.perform(post("/api/v1/billing/webhook")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(webhookPayload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/billing/status")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PAST_DUE"));
+    }
 }

@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -160,6 +161,205 @@ class WorkoutIntegrationTest extends AbstractIntegrationTest {
     void listWorkouts_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/library/workouts"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listWorkouts_authenticated_returnsOnlyCoachWorkouts() throws Exception {
+        createWorkout("Push Day");
+        createWorkout("Pull Day");
+
+        mockMvc.perform(get("/api/v1/library/workouts")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2));
+    }
+
+    @Test
+    void getWorkout_byId_returnsFullWorkout() throws Exception {
+        String id = createWorkout("Leg Day");
+
+        mockMvc.perform(get("/api/v1/library/workouts/{id}", id)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Leg Day"))
+                .andExpect(jsonPath("$.data.sections").isArray());
+    }
+
+    @Test
+    void getWorkout_unknownId_returns404() throws Exception {
+        mockMvc.perform(get("/api/v1/library/workouts/{id}", java.util.UUID.randomUUID())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateWorkout_patchesNameAndDuration() throws Exception {
+        String id = createWorkout("Old Name");
+
+        mockMvc.perform(put("/api/v1/library/workouts/{id}", id)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("name", "New Name", "estimatedDurationMinutes", 45))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("New Name"))
+                .andExpect(jsonPath("$.data.estimatedDurationMinutes").value(45));
+    }
+
+    @Test
+    void deleteWorkout_softDelete_notInListAfterwards() throws Exception {
+        String id = createWorkout("To Delete");
+
+        mockMvc.perform(delete("/api/v1/library/workouts/{id}", id)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/library/workouts")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void detachSection_removesFromWorkout() throws Exception {
+        String workoutId = createWorkout("Detach Test");
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Detachable Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        String attachResponse = mockMvc.perform(post("/api/v1/library/workouts/{id}/sections", workoutId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("sectionId", section.getId().toString()))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String assignmentId = objectMapper.readTree(attachResponse)
+                .path("data").path("sections").get(0).path("assignmentId").asText();
+
+        mockMvc.perform(delete("/api/v1/library/workouts/{id}/sections/{assignmentId}", workoutId, assignmentId)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/library/workouts/{id}", workoutId)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sections.length()").value(0));
+    }
+
+    @Test
+    void listSections_authenticated_returnsSections() throws Exception {
+        sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Morning Warm-up")
+                .sectionType(WorkoutSection.Type.WARM_UP).build());
+
+        mockMvc.perform(get("/api/v1/library/workout-sections")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("Morning Warm-up"));
+    }
+
+    @Test
+    void getSection_byId_returnsSectionWithExercises() throws Exception {
+        Exercise ex = exerciseRepository.save(Exercise.builder()
+                .coachId(coach.getId()).name("Plank").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Core Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "exerciseId", ex.getId().toString(), "sets", 3, "reps", 30))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/library/workout-sections/{id}", section.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Core Section"))
+                .andExpect(jsonPath("$.data.exercises.length()").value(1))
+                .andExpect(jsonPath("$.data.exercises[0].exerciseName").value("Plank"));
+    }
+
+    @Test
+    void getSection_otherCoachSection_returns404() throws Exception {
+        Coach other = coachRepository.save(Coach.builder()
+                .phone("9800020099").name("Other Coach")
+                .trialEndsAt(java.time.Instant.now().plusSeconds(86400L))
+                .build());
+        WorkoutSection otherSection = sectionRepository.save(WorkoutSection.builder()
+                .coachId(other.getId()).name("Their Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        mockMvc.perform(get("/api/v1/library/workout-sections/{id}", otherSection.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNotFound());
+
+        sectionRepository.delete(otherSection);
+        coachRepository.delete(other);
+    }
+
+    @Test
+    void updateSection_patchesNameAndType() throws Exception {
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Orig Name")
+                .sectionType(WorkoutSection.Type.WARM_UP).build());
+
+        mockMvc.perform(put("/api/v1/library/workout-sections/{id}", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Updated Name", "sectionType", "COOL_DOWN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("Updated Name"))
+                .andExpect(jsonPath("$.data.sectionType").value("COOL_DOWN"));
+    }
+
+    @Test
+    void deleteSection_notInUse_softDeletes() throws Exception {
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Unused Section")
+                .sectionType(WorkoutSection.Type.COOL_DOWN).build());
+
+        mockMvc.perform(delete("/api/v1/library/workout-sections/{id}", section.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/library/workout-sections")
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void removeSectionExercise_removesFromSection() throws Exception {
+        Exercise ex = exerciseRepository.save(Exercise.builder()
+                .coachId(coach.getId()).name("Burpee").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("HIIT Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        String addResponse = mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "exerciseId", ex.getId().toString(), "sets", 4, "reps", 10))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String entryId = objectMapper.readTree(addResponse)
+                .path("data").path("exercises").get(0).path("id").asText();
+
+        mockMvc.perform(delete("/api/v1/library/workout-sections/{id}/exercises/{entryId}",
+                        section.getId(), entryId)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/library/workout-sections/{id}", section.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.exercises.length()").value(0));
     }
 
     private String createWorkout(String name) throws Exception {
