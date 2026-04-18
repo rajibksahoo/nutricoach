@@ -24,10 +24,12 @@
     <!-- Local dev: demo data (context="local" — never runs in prod/test) -->
     <include file="db/changelog/changes/013-demo-data.xml" context="local"/>
 
-    <!-- Week 3: Client portal -->
+    <!-- Client portal index -->
     <include file="db/changelog/changes/014-client-portal-index.xml"/>
 
     <!-- Week 4+: Fitness library (Programs, Workouts, Sections, Exercises) -->
     <include file="db/changelog/changes/016-create-fitness-library.xml"/>
+    <!-- In-app messaging -->
+    <include file="db/changelog/changes/015-create-messages.xml"/>
 
 </databaseChangeLog>

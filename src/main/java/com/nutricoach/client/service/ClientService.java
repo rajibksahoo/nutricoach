@@ -41,6 +41,12 @@ public class ClientService {
     public ClientResponse create(CreateClientRequest req, UUID coachId) {
         subscriptionGate.requireClientSlot(coachId);
 
+        if (clientRepository.existsByPhoneAndDeletedAtIsNull(req.phone())) {
+            throw NutriCoachException.conflict(
+                    "This client is already registered with another coach on NutriCoach. " +
+                    "A client can only be managed by one coach at a time.");
+        }
+
         if (clientRepository.existsByCoachIdAndPhoneAndDeletedAtIsNull(coachId, req.phone())) {
             throw NutriCoachException.conflict("A client with this phone number already exists");
         }
