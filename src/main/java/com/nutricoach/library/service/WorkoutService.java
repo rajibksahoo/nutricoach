@@ -76,6 +76,28 @@ public class WorkoutService {
     }
 
     @Transactional
+    public WorkoutResponse duplicate(UUID id, UUID coachId) {
+        Workout original = requireWorkout(id, coachId);
+        Workout copy = workoutRepository.save(Workout.builder()
+                .coachId(coachId)
+                .name(original.getName() + " (copy)")
+                .description(original.getDescription())
+                .estimatedDurationMinutes(original.getEstimatedDurationMinutes())
+                .tags(original.getTags())
+                .build());
+
+        List<WorkoutSectionAssignment> originals = assignmentRepository.findByWorkoutIdOrderByPositionAsc(id);
+        for (WorkoutSectionAssignment a : originals) {
+            assignmentRepository.save(WorkoutSectionAssignment.builder()
+                    .workoutId(copy.getId())
+                    .sectionId(a.getSectionId())
+                    .position(a.getPosition())
+                    .build());
+        }
+        return get(copy.getId(), coachId);
+    }
+
+    @Transactional
     public void delete(UUID id, UUID coachId) {
         Workout w = requireWorkout(id, coachId);
         assignmentRepository.deleteByWorkoutId(id);

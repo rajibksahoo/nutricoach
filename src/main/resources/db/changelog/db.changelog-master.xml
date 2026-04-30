@@ -36,4 +36,7 @@
     <!-- Workout Builder field extensions -->
     <include file="db/changelog/changes/017-extend-fitness-library.xml"/>
 
+    <!-- System-seeded workout templates -->
+    <include file="db/changelog/changes/018-create-workout-templates.xml"/>
+
 </databaseChangeLog>
