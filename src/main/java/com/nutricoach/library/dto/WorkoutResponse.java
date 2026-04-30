@@ -9,6 +9,7 @@ public record WorkoutResponse(
         String name,
         String description,
         Integer estimatedDurationMinutes,
+        List<String> tags,
         List<WorkoutSectionResponse> sections,
         Instant createdAt,
         Instant updatedAt) {}

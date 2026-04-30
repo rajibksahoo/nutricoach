@@ -1,6 +1,9 @@
 package com.nutricoach.library.dto;
 
+import com.nutricoach.library.entity.Exercise;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ExerciseResponse(
@@ -11,5 +14,9 @@ public record ExerciseResponse(
         String equipment,
         String videoUrl,
         String notes,
+        Exercise.Category category,
+        String movementPattern,
+        List<String> tags,
+        boolean custom,
         Instant createdAt,
         Instant updatedAt) {}

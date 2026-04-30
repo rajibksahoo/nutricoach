@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -360,6 +361,49 @@ class WorkoutIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.exercises.length()").value(0));
+    }
+
+    @Test
+    void createWorkout_withTags_roundTrips() throws Exception {
+        mockMvc.perform(post("/api/v1/library/workouts")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Tagged Workout",
+                                "tags", List.of("hypertrophy", "upper")))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.tags[0]").value("hypertrophy"));
+    }
+
+    @Test
+    void createSection_finisherType_returns201() throws Exception {
+        mockMvc.perform(post("/api/v1/library/workout-sections")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Finisher",
+                                "sectionType", "FINISHER"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.sectionType").value("FINISHER"));
+    }
+
+    @Test
+    void addSectionExercise_withWeight_roundTrips() throws Exception {
+        Exercise ex = exerciseRepository.save(Exercise.builder()
+                .coachId(coach.getId()).name("Bench Press").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Push Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "exerciseId", ex.getId().toString(),
+                                "sets", 5, "reps", 5,
+                                "weight", "70 kg"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.exercises[0].weight").value("70 kg"));
     }
 
     private String createWorkout(String name) throws Exception {

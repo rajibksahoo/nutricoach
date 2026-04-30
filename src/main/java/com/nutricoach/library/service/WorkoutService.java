@@ -36,6 +36,7 @@ public class WorkoutService {
                 .name(req.name())
                 .description(req.description())
                 .estimatedDurationMinutes(req.estimatedDurationMinutes())
+                .tags(req.tags())
                 .build();
         return workoutMapper.toSummary(workoutRepository.save(w));
     }
@@ -61,7 +62,7 @@ public class WorkoutService {
                 .toList();
         return new WorkoutResponse(
                 w.getId(), w.getName(), w.getDescription(), w.getEstimatedDurationMinutes(),
-                sectionResponses, w.getCreatedAt(), w.getUpdatedAt());
+                w.getTags(), sectionResponses, w.getCreatedAt(), w.getUpdatedAt());
     }
 
     @Transactional
@@ -70,6 +71,7 @@ public class WorkoutService {
         if (StringUtils.hasText(req.name()))               w.setName(req.name());
         if (req.description() != null)                     w.setDescription(req.description());
         if (req.estimatedDurationMinutes() != null)        w.setEstimatedDurationMinutes(req.estimatedDurationMinutes());
+        if (req.tags() != null)                            w.setTags(req.tags());
         return workoutMapper.toSummary(workoutRepository.save(w));
     }
 
@@ -178,6 +180,7 @@ public class WorkoutService {
                 .reps(req.reps())
                 .durationSeconds(req.durationSeconds())
                 .restSeconds(req.restSeconds())
+                .weight(req.weight())
                 .notes(req.notes())
                 .build());
 
@@ -215,7 +218,7 @@ public class WorkoutService {
                         e.getId(), e.getExerciseId(),
                         exerciseNames.getOrDefault(e.getExerciseId(), "Unknown"),
                         e.getPosition(), e.getSets(), e.getReps(),
-                        e.getDurationSeconds(), e.getRestSeconds(), e.getNotes()))
+                        e.getDurationSeconds(), e.getRestSeconds(), e.getWeight(), e.getNotes()))
                 .toList();
         return new WorkoutSectionResponse(s.getId(), null, s.getName(), s.getSectionType(),
                 s.getDescription(), items, s.getCreatedAt(), s.getUpdatedAt());

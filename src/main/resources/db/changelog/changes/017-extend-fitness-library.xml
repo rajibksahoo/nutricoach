@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Workout Builder fields: category, tags, movement pattern, weight,  -->
+    <!-- expanded section types (ACCESSORY, FINISHER).                      -->
+    <!-- ================================================================= -->
+
+    <changeSet id="017-exercises-add-category" author="nutricoach">
+        <addColumn tableName="exercises">
+            <column name="category" type="varchar(20)" defaultValue="strength">
+                <constraints nullable="false"/>
+            </column>
+            <column name="movement_pattern" type="varchar(60)"/>
+            <column name="tags" type="jsonb" defaultValueComputed="'[]'::jsonb"/>
+            <column name="is_custom" type="boolean" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <sql>
+            ALTER TABLE exercises
+                ADD CONSTRAINT chk_exercises_category
+                CHECK (category IN ('strength','bodyweight','timed','cardio','amrap'));
+        </sql>
+
+        <rollback>
+            <sql>ALTER TABLE exercises DROP CONSTRAINT IF EXISTS chk_exercises_category;</sql>
+            <dropColumn tableName="exercises" columnName="category"/>
+            <dropColumn tableName="exercises" columnName="movement_pattern"/>
+            <dropColumn tableName="exercises" columnName="tags"/>
+            <dropColumn tableName="exercises" columnName="is_custom"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="017-workouts-add-tags" author="nutricoach">
+        <addColumn tableName="workouts">
+            <column name="tags" type="jsonb" defaultValueComputed="'[]'::jsonb"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="workouts" columnName="tags"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="017-workout-sections-extend-type" author="nutricoach">
+        <sql>
+            ALTER TABLE workout_sections DROP CONSTRAINT IF EXISTS chk_workout_sections_type;
+            ALTER TABLE workout_sections
+                ADD CONSTRAINT chk_workout_sections_type
+                CHECK (section_type IN ('WARM_UP','MAIN','ACCESSORY','COOL_DOWN','FINISHER'));
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE workout_sections DROP CONSTRAINT IF EXISTS chk_workout_sections_type;
+                ALTER TABLE workout_sections
+                    ADD CONSTRAINT chk_workout_sections_type
+                    CHECK (section_type IN ('WARM_UP','MAIN','COOL_DOWN'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="017-section-exercises-add-weight" author="nutricoach">
+        <addColumn tableName="workout_section_exercises">
+            <column name="weight" type="varchar(40)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="workout_section_exercises" columnName="weight"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

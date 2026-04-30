@@ -25,7 +25,7 @@ public class ExerciseService {
 
     @Transactional
     public ExerciseResponse create(UUID coachId, CreateExerciseRequest req) {
-        Exercise ex = Exercise.builder()
+        Exercise.ExerciseBuilder builder = Exercise.builder()
                 .coachId(coachId)
                 .name(req.name())
                 .description(req.description())
@@ -33,8 +33,10 @@ public class ExerciseService {
                 .equipment(req.equipment())
                 .videoUrl(req.videoUrl())
                 .notes(req.notes())
-                .build();
-        return exerciseMapper.toResponse(exerciseRepository.save(ex));
+                .movementPattern(req.movementPattern())
+                .tags(req.tags());
+        if (req.category() != null) builder.category(req.category());
+        return exerciseMapper.toResponse(exerciseRepository.save(builder.build()));
     }
 
     @Transactional(readOnly = true)
@@ -57,6 +59,9 @@ public class ExerciseService {
         if (req.equipment() != null)                ex.setEquipment(req.equipment());
         if (req.videoUrl() != null)                 ex.setVideoUrl(req.videoUrl());
         if (req.notes() != null)                    ex.setNotes(req.notes());
+        if (req.category() != null)                 ex.setCategory(req.category());
+        if (req.movementPattern() != null)          ex.setMovementPattern(req.movementPattern());
+        if (req.tags() != null)                     ex.setTags(req.tags());
         return exerciseMapper.toResponse(exerciseRepository.save(ex));
     }
 

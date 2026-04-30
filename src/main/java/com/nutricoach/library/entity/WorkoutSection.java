@@ -32,5 +32,5 @@ public class WorkoutSection extends BaseEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    public enum Type { WARM_UP, MAIN, COOL_DOWN }
+    public enum Type { WARM_UP, MAIN, ACCESSORY, COOL_DOWN, FINISHER }
 }
