@@ -11,4 +11,5 @@ public record SectionExerciseResponse(
         Integer reps,
         Integer durationSeconds,
         Integer restSeconds,
+        String weight,
         String notes) {}

@@ -34,6 +34,9 @@ public class WorkoutSectionExercise extends BaseEntity {
     @Column(name = "rest_seconds")
     private Integer restSeconds;
 
+    @Column(length = 40)
+    private String weight;
+
     @Column(columnDefinition = "text")
     private String notes;
 }

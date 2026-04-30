@@ -1,7 +1,10 @@
 package com.nutricoach.library.dto;
 
+import com.nutricoach.library.entity.Exercise;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+
+import java.util.List;
 
 public record CreateExerciseRequest(
         @NotBlank @Size(max = 150) String name,
@@ -9,4 +12,7 @@ public record CreateExerciseRequest(
         @Size(max = 50) String muscleGroup,
         @Size(max = 80) String equipment,
         @Size(max = 500) String videoUrl,
-        String notes) {}
+        String notes,
+        Exercise.Category category,
+        @Size(max = 60) String movementPattern,
+        List<String> tags) {}

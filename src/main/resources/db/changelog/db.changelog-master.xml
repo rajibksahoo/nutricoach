@@ -33,4 +33,7 @@
     <!-- In-app messaging -->
     <include file="db/changelog/changes/015-create-messages.xml"/>
 
+    <!-- Workout Builder field extensions -->
+    <include file="db/changelog/changes/017-extend-fitness-library.xml"/>
+
 </databaseChangeLog>

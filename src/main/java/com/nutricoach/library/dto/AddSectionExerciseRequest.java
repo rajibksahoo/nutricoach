@@ -1,6 +1,7 @@
 package com.nutricoach.library.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
@@ -11,4 +12,5 @@ public record AddSectionExerciseRequest(
         Integer reps,
         Integer durationSeconds,
         Integer restSeconds,
+        @Size(max = 40) String weight,
         String notes) {}

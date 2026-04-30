@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -136,6 +137,34 @@ class ExerciseIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[?(@.id == '" + id + "')]").doesNotExist());
+    }
+
+    @Test
+    void create_withCategoryAndTags_roundTrips() throws Exception {
+        mockMvc.perform(post("/api/v1/library/exercises")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Goblet Squat",
+                                "category", "strength",
+                                "movementPattern", "Squat",
+                                "tags", List.of("compound", "lower")))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.category").value("strength"))
+                .andExpect(jsonPath("$.data.movementPattern").value("Squat"))
+                .andExpect(jsonPath("$.data.tags[0]").value("compound"))
+                .andExpect(jsonPath("$.data.custom").value(true));
+    }
+
+    @Test
+    void create_invalidCategory_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/library/exercises")
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Bad",
+                                "category", "not-a-category"))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
