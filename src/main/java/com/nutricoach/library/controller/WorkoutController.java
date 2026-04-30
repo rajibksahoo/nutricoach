@@ -59,6 +59,14 @@ public class WorkoutController {
         return ResponseEntity.ok(ApiResponse.ok("Workout updated", workoutService.update(id, coachId, req)));
     }
 
+    @PostMapping("/api/v1/library/workouts/{id}/duplicate")
+    @Operation(summary = "Duplicate a workout (copies metadata + section assignments)")
+    public ResponseEntity<ApiResponse<WorkoutResponse>> duplicate(@PathVariable UUID id) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Workout duplicated", workoutService.duplicate(id, coachId)));
+    }
+
     @DeleteMapping("/api/v1/library/workouts/{id}")
     @Operation(summary = "Delete a workout (soft delete; detaches all sections)")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {

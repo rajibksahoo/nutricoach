@@ -364,6 +364,34 @@ class WorkoutIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void duplicateWorkout_copiesMetadataAndAssignments() throws Exception {
+        String workoutId = createWorkout("Original Workout");
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Shared Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        mockMvc.perform(post("/api/v1/library/workouts/{id}/sections", workoutId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("sectionId", section.getId().toString()))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/library/workouts/{id}/duplicate", workoutId)
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.name").value("Original Workout (copy)"))
+                .andExpect(jsonPath("$.data.sections.length()").value(1))
+                .andExpect(jsonPath("$.data.id").isNotEmpty());
+    }
+
+    @Test
+    void duplicateWorkout_unknownId_returns404() throws Exception {
+        mockMvc.perform(post("/api/v1/library/workouts/{id}/duplicate", UUID.randomUUID())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void createWorkout_withTags_roundTrips() throws Exception {
         mockMvc.perform(post("/api/v1/library/workouts")
                         .header("Authorization", "Bearer " + jwt)
