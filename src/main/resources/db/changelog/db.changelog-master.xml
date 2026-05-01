@@ -39,4 +39,7 @@
     <!-- System-seeded workout templates -->
     <include file="db/changelog/changes/018-create-workout-templates.xml"/>
 
+    <!-- Workout assignments + schedules -->
+    <include file="db/changelog/changes/019-create-workout-assignments-and-schedules.xml"/>
+
 </databaseChangeLog>

@@ -35,7 +35,7 @@ class WorkoutTemplateIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setup() {
-        coachRepository.findByPhone("9800030001").ifPresent(existing -> {
+        coachRepository.findByPhone("9800050001").ifPresent(existing -> {
             assignmentRepository.findAll().stream()
                     .filter(a -> workoutRepository.findById(a.getWorkoutId())
                             .map(w -> w.getCoachId().equals(existing.getId())).orElse(false))
@@ -57,7 +57,7 @@ class WorkoutTemplateIntegrationTest extends AbstractIntegrationTest {
         });
 
         coach = coachRepository.save(Coach.builder()
-                .phone("9800030001").name("Template Test Coach")
+                .phone("9800050001").name("Template Test Coach")
                 .trialEndsAt(Instant.now().plusSeconds(14 * 24 * 3600L))
                 .build());
         jwt = jwtService.generateToken(coach.getPhone(), coach.getId(), "ROLE_COACH");

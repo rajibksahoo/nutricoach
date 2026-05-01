@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Workout assignment (point-in-time) and scheduling (date-bound).    -->
+    <!-- ================================================================= -->
+
+    <changeSet id="019-create-client-workout-assignments" author="nutricoach">
+        <createTable tableName="client_workout_assignments">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwa_coach" references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwa_client" references="clients(id)"/>
+            </column>
+            <column name="workout_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwa_workout" references="workouts(id)"/>
+            </column>
+            <column name="assigned_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+        </createTable>
+
+        <createIndex tableName="client_workout_assignments" indexName="idx_cwa_coach_client">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+        </createIndex>
+
+        <sql>
+            CREATE UNIQUE INDEX uq_cwa_active
+              ON client_workout_assignments (client_id, workout_id)
+              WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uq_cwa_active;</sql>
+            <dropTable tableName="client_workout_assignments"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="019-create-client-workout-schedules" author="nutricoach">
+        <createTable tableName="client_workout_schedules">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cws_coach" references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cws_client" references="clients(id)"/>
+            </column>
+            <column name="workout_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cws_workout" references="workouts(id)"/>
+            </column>
+            <column name="scheduled_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+        </createTable>
+
+        <createIndex tableName="client_workout_schedules" indexName="idx_cws_coach_client_date">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+            <column name="scheduled_date"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="client_workout_schedules"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
