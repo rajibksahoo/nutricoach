@@ -210,6 +210,55 @@ public class WorkoutService {
     }
 
     @Transactional
+    public WorkoutSectionResponse updateSectionExercise(UUID sectionId, UUID coachId, UUID entryId,
+                                                        PatchSectionExerciseRequest req) {
+        requireSection(sectionId, coachId);
+        WorkoutSectionExercise entry = sectionExerciseRepository.findByIdAndSectionId(entryId, sectionId)
+                .orElseThrow(() -> NutriCoachException.notFound("Section exercise not found"));
+        if (req.position() != null)         entry.setPosition(req.position());
+        if (req.sets() != null)             entry.setSets(req.sets());
+        if (req.reps() != null)             entry.setReps(req.reps());
+        if (req.durationSeconds() != null)  entry.setDurationSeconds(req.durationSeconds());
+        if (req.restSeconds() != null)      entry.setRestSeconds(req.restSeconds());
+        if (req.weight() != null)           entry.setWeight(req.weight());
+        if (req.notes() != null)            entry.setNotes(req.notes());
+        sectionExerciseRepository.save(entry);
+        return getSection(sectionId, coachId);
+    }
+
+    @Transactional
+    public WorkoutSectionResponse reorderSectionExercises(UUID sectionId, UUID coachId, ReorderRequest req) {
+        requireSection(sectionId, coachId);
+        List<WorkoutSectionExercise> entries = sectionExerciseRepository.findBySectionIdOrderByPositionAsc(sectionId);
+        Map<UUID, WorkoutSectionExercise> byId = entries.stream()
+                .collect(Collectors.toMap(WorkoutSectionExercise::getId, e -> e));
+        if (req.orderedIds().size() != entries.size() || !byId.keySet().containsAll(req.orderedIds())) {
+            throw NutriCoachException.badRequest("orderedIds must contain every entry id in this section exactly once");
+        }
+        for (int i = 0; i < req.orderedIds().size(); i++) {
+            byId.get(req.orderedIds().get(i)).setPosition(i);
+        }
+        sectionExerciseRepository.saveAll(entries);
+        return getSection(sectionId, coachId);
+    }
+
+    @Transactional
+    public WorkoutResponse reorderWorkoutSections(UUID workoutId, UUID coachId, ReorderRequest req) {
+        requireWorkout(workoutId, coachId);
+        List<WorkoutSectionAssignment> assignments = assignmentRepository.findByWorkoutIdOrderByPositionAsc(workoutId);
+        Map<UUID, WorkoutSectionAssignment> byId = assignments.stream()
+                .collect(Collectors.toMap(WorkoutSectionAssignment::getId, a -> a));
+        if (req.orderedIds().size() != assignments.size() || !byId.keySet().containsAll(req.orderedIds())) {
+            throw NutriCoachException.badRequest("orderedIds must contain every assignment id in this workout exactly once");
+        }
+        for (int i = 0; i < req.orderedIds().size(); i++) {
+            byId.get(req.orderedIds().get(i)).setPosition(i);
+        }
+        assignmentRepository.saveAll(assignments);
+        return get(workoutId, coachId);
+    }
+
+    @Transactional
     public void removeSectionExercise(UUID sectionId, UUID coachId, UUID entryId) {
         requireSection(sectionId, coachId);
         WorkoutSectionExercise entry = sectionExerciseRepository.findByIdAndSectionId(entryId, sectionId)
