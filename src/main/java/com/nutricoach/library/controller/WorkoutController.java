@@ -145,6 +145,37 @@ public class WorkoutController {
                 .body(ApiResponse.ok("Exercise added", workoutService.addSectionExercise(id, coachId, req)));
     }
 
+    @PatchMapping("/api/v1/library/workout-sections/{id}/exercises/{entryId}")
+    @Operation(summary = "Update parameters on a section exercise entry")
+    public ResponseEntity<ApiResponse<WorkoutSectionResponse>> updateSectionExercise(
+            @PathVariable UUID id,
+            @PathVariable UUID entryId,
+            @Valid @RequestBody PatchSectionExerciseRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok("Exercise updated",
+                workoutService.updateSectionExercise(id, coachId, entryId, req)));
+    }
+
+    @PutMapping("/api/v1/library/workout-sections/{id}/exercises/order")
+    @Operation(summary = "Reorder exercise entries within a section")
+    public ResponseEntity<ApiResponse<WorkoutSectionResponse>> reorderSectionExercises(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReorderRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok("Exercises reordered",
+                workoutService.reorderSectionExercises(id, coachId, req)));
+    }
+
+    @PutMapping("/api/v1/library/workouts/{id}/sections/order")
+    @Operation(summary = "Reorder section assignments within a workout")
+    public ResponseEntity<ApiResponse<WorkoutResponse>> reorderWorkoutSections(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReorderRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok("Sections reordered",
+                workoutService.reorderWorkoutSections(id, coachId, req)));
+    }
+
     @DeleteMapping("/api/v1/library/workout-sections/{id}/exercises/{entryId}")
     @Operation(summary = "Remove an exercise entry from a section")
     public ResponseEntity<ApiResponse<Void>> removeSectionExercise(@PathVariable UUID id,

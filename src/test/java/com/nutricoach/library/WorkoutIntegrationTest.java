@@ -434,6 +434,124 @@ class WorkoutIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data.exercises[0].weight").value("70 kg"));
     }
 
+    @Test
+    void patchSectionExercise_updatesParams() throws Exception {
+        Exercise ex = exerciseRepository.save(Exercise.builder()
+                .coachId(coach.getId()).name("Squat").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Legs")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        String addResponse = mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "exerciseId", ex.getId().toString(), "sets", 3, "reps", 8))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String entryId = objectMapper.readTree(addResponse).path("data").path("exercises").get(0).path("id").asText();
+
+        mockMvc.perform(patch("/api/v1/library/workout-sections/{id}/exercises/{entryId}",
+                        section.getId(), entryId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "sets", 5, "reps", 5, "weight", "80 kg", "restSeconds", 90))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.exercises[0].sets").value(5))
+                .andExpect(jsonPath("$.data.exercises[0].reps").value(5))
+                .andExpect(jsonPath("$.data.exercises[0].weight").value("80 kg"))
+                .andExpect(jsonPath("$.data.exercises[0].restSeconds").value(90));
+    }
+
+    @Test
+    void reorderSectionExercises_updatesPositions() throws Exception {
+        Exercise a = exerciseRepository.save(Exercise.builder().coachId(coach.getId()).name("A").build());
+        Exercise b = exerciseRepository.save(Exercise.builder().coachId(coach.getId()).name("B").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Order Section")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        String r1 = mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("exerciseId", a.getId().toString()))))
+                .andReturn().getResponse().getContentAsString();
+        String r2 = mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("exerciseId", b.getId().toString()))))
+                .andReturn().getResponse().getContentAsString();
+        String idA = objectMapper.readTree(r1).path("data").path("exercises").get(0).path("id").asText();
+        String idB = objectMapper.readTree(r2).path("data").path("exercises").get(1).path("id").asText();
+
+        mockMvc.perform(put("/api/v1/library/workout-sections/{id}/exercises/order", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("orderedIds", List.of(idB, idA)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.exercises[0].id").value(idB))
+                .andExpect(jsonPath("$.data.exercises[1].id").value(idA));
+    }
+
+    @Test
+    void reorderSectionExercises_partialList_returns400() throws Exception {
+        Exercise a = exerciseRepository.save(Exercise.builder().coachId(coach.getId()).name("A").build());
+        Exercise b = exerciseRepository.save(Exercise.builder().coachId(coach.getId()).name("B").build());
+        WorkoutSection section = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Bad Order")
+                .sectionType(WorkoutSection.Type.MAIN).build());
+
+        String r1 = mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("exerciseId", a.getId().toString()))))
+                .andReturn().getResponse().getContentAsString();
+        mockMvc.perform(post("/api/v1/library/workout-sections/{id}/exercises", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("exerciseId", b.getId().toString()))))
+                .andExpect(status().isCreated());
+        String idA = objectMapper.readTree(r1).path("data").path("exercises").get(0).path("id").asText();
+
+        mockMvc.perform(put("/api/v1/library/workout-sections/{id}/exercises/order", section.getId())
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("orderedIds", List.of(idA)))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reorderWorkoutSections_updatesPositions() throws Exception {
+        String workoutId = createWorkout("Reorder Workout");
+        WorkoutSection s1 = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("First").sectionType(WorkoutSection.Type.WARM_UP).build());
+        WorkoutSection s2 = sectionRepository.save(WorkoutSection.builder()
+                .coachId(coach.getId()).name("Second").sectionType(WorkoutSection.Type.MAIN).build());
+
+        String a1 = mockMvc.perform(post("/api/v1/library/workouts/{id}/sections", workoutId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("sectionId", s1.getId().toString()))))
+                .andReturn().getResponse().getContentAsString();
+        String a2 = mockMvc.perform(post("/api/v1/library/workouts/{id}/sections", workoutId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("sectionId", s2.getId().toString()))))
+                .andReturn().getResponse().getContentAsString();
+        String assignmentId1 = objectMapper.readTree(a1).path("data").path("sections").get(0).path("assignmentId").asText();
+        String assignmentId2 = objectMapper.readTree(a2).path("data").path("sections").get(1).path("assignmentId").asText();
+
+        mockMvc.perform(put("/api/v1/library/workouts/{id}/sections/order", workoutId)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "orderedIds", List.of(assignmentId2, assignmentId1)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sections[0].assignmentId").value(assignmentId2))
+                .andExpect(jsonPath("$.data.sections[1].assignmentId").value(assignmentId1));
+    }
+
     private String createWorkout(String name) throws Exception {
         String response = mockMvc.perform(post("/api/v1/library/workouts")
                         .header("Authorization", "Bearer " + jwt)
