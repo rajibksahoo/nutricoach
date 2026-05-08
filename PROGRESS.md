@@ -13,7 +13,7 @@
 | Backend (auth, clients, plans, billing, progress, AI, WhatsApp) | ✅ Built (no design-driven changes pending) |
 | Frontend design tokens (Indigo + Teal, Inter, new radii/shadows) | 🔲 Not started |
 | Workout Builder screen | 🔲 Not started |
-| Library (Exercises, Workouts, …) | 🟡 Sub-nav matches; content still old palette |
+| Library (Exercises, Workouts, …) | 🟡 Section pane matches design; right-pane content still on old palette |
 | Clients screen | 🔲 Not redesigned |
 | Inbox / Messaging screen | 🔲 Not redesigned |
 | Modals (Exercise, Assign, Schedule, Create chooser, Choose template, Workout editor) | 🔲 Not started |
@@ -67,7 +67,7 @@ Each item lands on its own `feat/design-…` branch. After PR + review the next 
 5. **Exercise modal** (`feat/design-exercise-modal`) — `exercise-modal.jsx`
 6. **Create-workout modals** (`feat/design-create-workout-modals`) — `workout-create-modals.jsx`
 7. **Assign + Schedule modals** (`feat/design-assign-schedule-modals`) — `modals.jsx`
-8. **Library screen** (`feat/design-library`) — `library.jsx` + `workouts.jsx`; reconcile with the existing `/library/*` route group (the design shows tabs; the current app uses a section sidebar — pick one and update `DESIGN.md`)
+8. **Library screen** (`feat/design-library`) — `library.jsx` + `workouts.jsx`; the design's outer chrome is a **232px grouped section pane** (not tabs), already matching the existing `/library/*` route group. The redesign work here is the right-pane content: Everfit-style table, filter chips, bulk-action bar.
 9. **Clients screen** (`feat/design-clients`) — `clients.jsx`
 10. **Inbox / Messaging screen** (`feat/design-inbox`) — `inbox.jsx`
 11. **Polish pass** — toast, focus rings, empty states, keyboard hints, hover states audited against the prototypes
@@ -86,13 +86,17 @@ Each item lands on its own `feat/design-…` branch. After PR + review the next 
 
 ## Done
 
-- Library section sidebar — icons removed to match design (small step, kept).
+- Design tokens (`feat/design-tokens`) — Indigo + Teal palette, JetBrains Mono added.
+- App shell (`feat/design-app-shell`) — sidebar at 212px with indigo active state.
+- Workout Builder canvas (`feat/design-workout-builder`) — already ported; redundant tokens stripped from `workout-builder.css`, font binaries deleted, route opted into fullBleed.
+- Workout Editor modal (`feat/design-workout-editor`) — already ported; entrance animations added.
+- Library section pane (`feat/design-library-and-modal-polish`) — restored to match `library.jsx` `navGroups`: 232px white surface, four uppercase group headers (Fitness / Nutrition / Habits / Forms), indigo active state, violet `NEW` pill. Modal animations (`exercise`, `create-workout`, `assign`, `schedule`) revived from broken `fadeIn`/`slideUp` references to the actual `wb-fadeIn`/`wb-slideUp` keyframes.
 
 ---
 
 ## Decisions (locked 2026-05-08)
 
-- **Library:** adopt the design's **top tabs** (Fitness / Nutrition / Habits / Forms). Retire the 11-entry section pane.
+- **Library:** adopt the design's **232px grouped section pane** — Fitness / Nutrition / Habits / Forms as uppercase group headers with items underneath each (matches `library.jsx` `navGroups`). _Earlier note here said "top tabs" — that was a misread of the design from only `shared.jsx`; corrected 2026-05-09 after the implementation didn't match._
 - **Fonts:** load Inter via `next/font/google`. No self-hosted TTFs. Inter Display / Inter XL fall back to Inter weights — close enough at our scale.
 - **Brand migration:** **per-screen**. Each redesign branch migrates its own screen from emerald to indigo. No global flag-day rewrite. `globals.css` keeps both palettes available until the queue is done.
 
