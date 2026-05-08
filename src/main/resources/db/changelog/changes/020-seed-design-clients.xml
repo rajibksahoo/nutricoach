@@ -128,7 +128,90 @@
             <column name="updated_at"        valueComputed="now()"/>
         </insert>
 
+        <!--
+            Progress logs for the Body Metrics sparklines.
+            Each connected client gets 10 weight + body-fat readings over the
+            last 45 days (5-day cadence), shaped to the design's metrics
+            arrays in components/clients/data.ts. Karthik just signed up — he
+            has a single intake reading. Steps are not tracked by the backend.
+        -->
+
+        <!-- Priya Sharma — losing weight + body fat -->
+        <sql>
+            INSERT INTO progress_logs (id, coach_id, client_id, logged_date, weight_kg, body_fat_percent, created_at, updated_at) VALUES
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 45, 74.1, 31.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 40, 73.4, 30.5, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 35, 72.8, 30.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 30, 72.0, 29.6, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 25, 71.4, 29.1, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 20, 70.6, 28.7, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 15, 69.8, 28.3, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 10, 69.1, 28.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date - 5,  68.7, 28.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000001', current_date,      68.4, 28.0, now(), now());
+        </sql>
+
+        <!-- Arjun Reddy — bulking up -->
+        <sql>
+            INSERT INTO progress_logs (id, coach_id, client_id, logged_date, weight_kg, body_fat_percent, created_at, updated_at) VALUES
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 45, 71.2, 16.4, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 40, 71.6, 16.2, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 35, 72.0, 16.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 30, 72.4, 15.8, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 25, 72.8, 15.6, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 20, 73.3, 15.5, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 15, 73.6, 15.4, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 10, 74.0, 15.2, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date - 5,  74.4, 15.1, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000002', current_date,      74.8, 15.0, now(), now());
+        </sql>
+
+        <!-- Meera Iyer — recomp / maintenance -->
+        <sql>
+            INSERT INTO progress_logs (id, coach_id, client_id, logged_date, weight_kg, body_fat_percent, created_at, updated_at) VALUES
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 45, 57.8, 26.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 40, 57.4, 25.6, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 35, 57.0, 25.2, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 30, 56.6, 24.8, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 25, 56.2, 24.5, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 20, 55.9, 24.2, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 15, 55.6, 24.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 10, 55.4, 24.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date - 5,  55.3, 24.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000003', current_date,      55.2, 24.0, now(), now());
+        </sql>
+
+        <!-- Karthik Rao — single intake reading -->
+        <sql>
+            INSERT INTO progress_logs (id, coach_id, client_id, logged_date, weight_kg, body_fat_percent, created_at, updated_at) VALUES
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000004', current_date - 4, 86.1, 31.0, now(), now());
+        </sql>
+
+        <!-- Sneha Gupta — PCOS support, gradual progress -->
+        <sql>
+            INSERT INTO progress_logs (id, coach_id, client_id, logged_date, weight_kg, body_fat_percent, created_at, updated_at) VALUES
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 45, 66.2, 29.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 40, 65.9, 28.7, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 35, 65.5, 28.3, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 30, 65.2, 28.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 25, 64.8, 27.7, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 20, 64.5, 27.5, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 15, 64.1, 27.2, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 10, 63.9, 27.1, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date - 5,  63.7, 27.0, now(), now()),
+              (gen_random_uuid(), '00000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-000000000005', current_date,      63.5, 27.0, now(), now());
+        </sql>
+
         <rollback>
+            <delete tableName="progress_logs">
+                <where>client_id IN (
+                    '11111111-1111-1111-1111-000000000001',
+                    '11111111-1111-1111-1111-000000000002',
+                    '11111111-1111-1111-1111-000000000003',
+                    '11111111-1111-1111-1111-000000000004',
+                    '11111111-1111-1111-1111-000000000005'
+                )</where>
+            </delete>
             <delete tableName="clients">
                 <where>id IN (
                     '11111111-1111-1111-1111-000000000001',
