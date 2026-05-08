@@ -42,4 +42,7 @@
     <!-- Workout assignments + schedules -->
     <include file="db/changelog/changes/019-create-workout-assignments-and-schedules.xml"/>
 
+    <!-- Local dev: 5 design clients replace the 013 demo set (context="local") -->
+    <include file="db/changelog/changes/020-seed-design-clients.xml" context="local"/>
+
 </databaseChangeLog>
