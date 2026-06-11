@@ -76,39 +76,30 @@ The datasource URL (`localhost:5433`) lives in `src/test/resources/application-t
 CI override: set `TEST_DB_URL` env var to point at a CI-managed PostgreSQL instance.
 
 ## Architecture — Modular Monolith
-Single deployable JAR. 8 Spring modules:
+Single deployable JAR. 10 Spring modules, all implemented with integration tests (notifications has no controller — it's internal: service + scheduler):
 
 ```
 com.nutricoach
-├── auth          — OTP login, JWT issuance
-├── coach         — Coach profile, onboarding
-├── client        — Client management (multi-tenant)
-├── plans         — Meal plan builder
-├── ai            — GPT-4o meal plan generation (async)
-├── progress      — Progress logging, photos (S3)
+├── auth          — OTP login, JWT issuance (coach + client portal auth)
+├── coach         — Coach profile, onboarding, dashboard analytics
+├── client        — Client management (multi-tenant), client portal
+├── plans         — Meal plan builder, food items, plan sharing
+├── library       — Exercises, workouts, sections, programs, templates, assignments/scheduling
+├── messaging     — Coach ↔ client conversations (inbox)
+├── ai            — GPT-4o meal plan generation (async job pattern)
+├── progress      — Progress logging, photos (S3), check-ins
 ├── billing       — Razorpay subscriptions, feature gating
-└── notifications — MSG91 OTP, WATI WhatsApp
+└── notifications — WATI WhatsApp, check-in reminder scheduler (no controller)
 ```
 
-Each module has: `controller/`, `service/`, `repository/`, `entity/`, `dto/`
+Each module has: `controller/`, `service/`, `repository/`, `entity/`, `dto/`, `mapper/`
 
 Shared code lives in `com.nutricoach.common` (exception, response, security, config, entity).
-
-### Module implementation status
-| Module       | Entity | Repo | Service | Controller | Tests |
-|--------------|--------|------|---------|------------|-------|
-| auth         | ✓      | ✓    | ✓       | ✓          | ✓     |
-| coach        | ✓      | ✓    | ✓       | ✓          | ✓     |
-| client       | ✓      | ✓    | ✓       | ✓          | ✓     |
-| plans        | ✓      | ✓    | ✓       | ✓          | ✓     |
-| billing      | ✓      | ✓    | ✓       | ✓          | ✓     |
-| progress     | ✓      | ✓    | ✓       | ✓          | ✓     |
-| ai           | ✓      | —    | —       | —          | —     |
-| notifications| ✓      | —    | —       | —          | —     |
 
 **coach** has `CoachService` (profile, GSTIN validation) + `DashboardService` (analytics).
 **billing** has `BillingService` + `RazorpayService` (Razorpay SDK) + `SubscriptionGate` (feature gating per tier) + `WebhookController` (public endpoint, HMAC-verified). Tier limits: TRIAL=5 clients, STARTER=25, PROFESSIONAL=100, ENTERPRISE=∞.
 **progress** has `ProgressService` (measurements, S3 photos) + `CheckInService` (date-based adherence).
+**library** is the largest module: `Exercise`, `Workout`/`WorkoutSection`/`WorkoutSectionExercise`, `Program`/`ProgramDay`, `WorkoutTemplate`, plus client assignment/scheduling entities.
 
 ## Code Patterns
 
@@ -178,4 +169,3 @@ Shared code lives in `com.nutricoach.common` (exception, response, security, con
 - Java/Spring Boot is the strongest skill — lean into it
 - Ask before making irreversible decisions (DB schema changes, API contract breaks, external service choices)
 - Keep it simple — no over-engineering, no speculative abstractions
-- Run `/spring-boot-patterns` before implementing any new module for a full checklist
