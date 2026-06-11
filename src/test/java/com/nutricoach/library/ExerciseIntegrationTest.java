@@ -157,6 +157,34 @@ class ExerciseIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void create_mobilityPlyometricSkillCategories_roundTrip() throws Exception {
+        for (String category : List.of("mobility", "plyometric", "skill")) {
+            mockMvc.perform(post("/api/v1/library/exercises")
+                            .header("Authorization", "Bearer " + jwt)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(Map.of(
+                                    "name", "Move " + category,
+                                    "category", category))))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.category").value(category));
+        }
+    }
+
+    @Test
+    void update_categoryToMobility_returns200() throws Exception {
+        String id = createAndGetId("Burpees");
+
+        mockMvc.perform(put("/api/v1/library/exercises/{id}", id)
+                        .header("Authorization", "Bearer " + jwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "name", "Burpees",
+                                "category", "mobility"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.category").value("mobility"));
+    }
+
+    @Test
     void create_invalidCategory_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/library/exercises")
                         .header("Authorization", "Bearer " + jwt)
