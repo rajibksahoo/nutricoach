@@ -45,4 +45,7 @@
     <!-- Local dev: 5 design clients replace the 013 demo set (context="local") -->
     <include file="db/changelog/changes/020-seed-design-clients.xml" context="local"/>
 
+    <!-- Exercise category values for the library UI (mobility, plyometric, skill) -->
+    <include file="db/changelog/changes/021-extend-exercise-categories.xml"/>
+
 </databaseChangeLog>

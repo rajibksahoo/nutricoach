@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Exercise categories: add mobility, plyometric, skill to match      -->
+    <!-- the library UI. Legacy values stay valid for existing rows.        -->
+    <!-- ================================================================= -->
+
+    <changeSet id="021-exercises-extend-category-check" author="nutricoach">
+        <sql>
+            ALTER TABLE exercises DROP CONSTRAINT IF EXISTS chk_exercises_category;
+            ALTER TABLE exercises
+                ADD CONSTRAINT chk_exercises_category
+                CHECK (category IN ('strength','bodyweight','timed','cardio','amrap','mobility','plyometric','skill'));
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE exercises DROP CONSTRAINT IF EXISTS chk_exercises_category;
+                ALTER TABLE exercises
+                    ADD CONSTRAINT chk_exercises_category
+                    CHECK (category IN ('strength','bodyweight','timed','cardio','amrap'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

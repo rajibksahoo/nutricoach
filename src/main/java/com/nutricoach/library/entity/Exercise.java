@@ -59,5 +59,5 @@ public class Exercise extends BaseEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-    public enum Category { strength, bodyweight, timed, cardio, amrap }
+    public enum Category { strength, bodyweight, timed, cardio, amrap, mobility, plyometric, skill }
 }
