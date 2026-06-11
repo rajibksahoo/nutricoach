@@ -6,20 +6,21 @@
 
 ---
 
-## Quick Status
+## Quick Status (updated 2026-06-11 after full audit)
 
 | Area | Status |
 |------|--------|
-| Backend (auth, clients, plans, billing, progress, AI, WhatsApp) | ✅ Built (no design-driven changes pending) |
+| Backend (auth, clients, plans, billing, progress, AI, WhatsApp, messaging, library) | ✅ Built — all 10 modules with integration tests |
 | Frontend design tokens (Indigo + Teal, Inter, new radii/shadows) | ✅ Done |
 | App shell sidebar | ✅ Done — 212px slate-900 surface with indigo active state |
 | Workout Builder screen + modals | ✅ Done |
-| Library (section pane + right-pane) | 🟡 Section pane matches design; right-pane content still on old palette |
+| Library (section pane + right-pane) | ✅ Done — right-pane migrated to indigo (web PR #36) |
 | Clients screen | ✅ Done — design ported, list + sparklines wired to backend |
-| Inbox / Messaging screen | 🟡 Frontend ported; **backend not yet built** (see Future work below) |
-| Polish pass (toasts, focus rings, empty states, hover states) | 🔲 Not started |
+| Inbox / Messaging screen | ✅ Done — backend shipped (PR #19), InboxScreen wired to `/api/v1/messages` (web PR #37) |
+| Polish pass (toasts, focus rings, empty states, hover states) | ✅ Done (web PR #38) |
+| Client portal (login, home, meal-plans, chat, check-ins, progress, profile) | ✅ Done — wired to `/api/v1/portal/*` |
 
-**Next task:** Library right-pane redesign (table / filter chips / bulk-action bar from `library.jsx`), then the polish pass.
+**The design-match queue is complete.** Next work comes from the backlog below — recommended order: workout assignment/schedule visibility, then Programs screen, then library row actions.
 
 ---
 
@@ -104,38 +105,23 @@ Each item lands on its own `feat/design-…` branch. After PR + review the next 
 
 ---
 
-## Future / deferred backend work
+## Backlog (audit 2026-06-11)
 
-These are needed to fully populate the redesigned screens. Each is a real backend feature, not "wiring" — entities, repositories, controllers, tests, and a follow-up PR on `nutricoach-web` to consume the new endpoints.
+### Shipped since last update
+Messaging is **done**: `messaging/` module (entity/repo/service/mapper, `MessageController` at `/api/v1/messages/*` + `ClientMessagingController` at `/api/v1/portal/messages`, changeset `015-create-messages.xml`, `MessagingIntegrationTest`) and `InboxScreen` is wired via `lib/messaging-api.ts` (web PR #37). The original messaging proposal that lived here is obsolete and was removed. Still open from that proposal (now backlog): mark-as-read endpoint, WhatsApp notification on in-app send, WATI inbound webhook, real-time delivery (polling/SSE).
 
-### Inbox / messaging — no backend storage yet
-The redesigned `/messages` screen ships with a static `INBOX_THREADS` fixture because the Spring backend has no thread/message storage. Adding it is its own feature (sized for a multi-day backend branch + a follow-up frontend wiring PR).
-
-**Backend scope (proposed):**
-- New module `messaging/` with `MessageThread` and `Message` entities (multi-tenant: `coach_id`, `client_id`, both indexed).
-- Liquibase changeset `013-create-message-threads.xml`: `message_threads(id, coach_id, client_id, last_message_at, unread_count_for_coach, unread_count_for_client, created_at, updated_at)` + `messages(id, thread_id, sender_role enum COACH|CLIENT, body text, sent_at, read_at, created_at)`. FKs to `coaches` + `clients`. Index on `(coach_id, last_message_at desc)` for the inbox list.
-- `MessageThreadRepository`, `MessageRepository`, `MessagingService` (open-or-create thread, list threads with last preview + unread count, paginated thread history, send + mark-read).
-- DTOs: `MessageThreadSummaryResponse`, `MessageThreadResponse`, `MessageResponse`, `SendMessageRequest`. Mappers via MapStruct as usual.
-- `MessagingController` (`@PreAuthorize("hasRole('COACH')")`):
-  - `GET /api/v1/messages/threads` — list w/ unread + preview
-  - `GET /api/v1/messages/threads/{id}` — full thread (paginated)
-  - `POST /api/v1/messages/threads/{id}` — send message
-  - `POST /api/v1/messages/threads/{id}/read` — mark all as read
-- Mirror endpoints under `/api/v1/portal/messages/*` for the client-role JWT (Phase 3 of the bonus client portal).
-- Real-time delivery is **not** in scope for v1 — coach UI polls every ~10s while a thread is open. WebSocket/SSE is a later upgrade.
-- WhatsApp delivery: when the coach sends a message in-app, also fire the existing `WatiService` so the client gets a WhatsApp notification. Inbound WhatsApp messages would need a WATI webhook (separate scope).
-
-**Frontend follow-up (`feat/inbox-backend-wiring`):**
-- `lib/messaging-api.ts` with `listThreads()`, `getThread(id)`, `sendMessage(threadId, body)`, `markRead(threadId)`, plus a `BackendThread → Thread` mapper.
-- `InboxScreen` swaps `INBOX_THREADS` for the fetched list, and wires the input pill's send button.
-- Same dev fallback pattern as Clients: keep the static fixture when no API URL is configured / API returns empty.
+### Backend exists, UI missing (frontend-only work, highest value first)
+1. **Workout assignment/schedule visibility** — UI only POSTs `/workouts/{id}/assignments` and `/schedules`; backend also has `GET /workouts/{id}/assignments`, `DELETE …/assignments/{assignmentId}`, `GET /clients/{clientId}/schedules`, `DELETE /schedules/{scheduleId}`. Coach can assign but never view or undo. Natural homes: workout detail pane + client detail Training tab (currently a stub).
+2. **Programs screen** — full backend CRUD + day-by-day scheduling at `/api/v1/library/programs`; `/library/programs` renders `ComingSoon`.
+3. **Library row actions** — exercises/workouts pages toast "coming soon" for duplicate / assign / edit / delete, but the endpoints all exist (`POST /workouts/{id}/duplicate`, `PUT`/`DELETE /library/exercises/{id}`, assignments above).
+4. **Progress-photos grid on Clients screen** — `client.photos` is always empty; backend only has per-log photos. Needs a small all-photos-per-client endpoint + thumbnail grid consumption.
 
 ### Other unwired Client fields
 The redesigned `/clients` screen has visual slots for several things the backend doesn't track yet. Decide per-field whether to build the backend or drop the slot:
 
 - **Notes** — coach-authored notes per client. Probably worth a `client_notes` table.
 - **Limitations / injuries** — currently piggybacks on `clients.health_conditions` (string list). Promote to its own table if we want dated entries (the design shows a date per entry).
-- **Progress photos** — backend already supports photos via `progress_photos` (S3); the screen just needs a thumbnail-grid endpoint and to consume it.
+- **Progress photos** — see item 4 above (backend supports per-log photos; needs an all-photos-per-client endpoint).
 - **Updates feed** — generic activity log of "client did X / coach did Y" events. Needs an `activity_log` table or a derived view over existing tables.
 - **Training stats** (last 7 / 30 days, next week assigned, last workout) — depends on the workout-assignment story landing first.
 - **Package / pkgEnd** — billing-side fields. Tie into `subscriptions` once per-client packages exist (today subscriptions are coach-tier, not per-client).
