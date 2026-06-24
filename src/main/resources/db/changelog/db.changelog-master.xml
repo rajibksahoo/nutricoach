@@ -48,4 +48,7 @@
     <!-- Exercise category values for the library UI (mobility, plyometric, skill) -->
     <include file="db/changelog/changes/021-extend-exercise-categories.xml"/>
 
+    <!-- Program Builder: weeks/modality/experience/tags/cover + program assignments -->
+    <include file="db/changelog/changes/022-extend-programs-and-assignments.xml"/>
+
 </databaseChangeLog>
