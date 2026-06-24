@@ -9,6 +9,12 @@ public record ProgramResponse(
         String name,
         String description,
         int durationDays,
+        Integer weeks,
+        String modality,
+        String experienceLevel,
+        List<String> tags,
+        String coverImageUrl,
+        String coverGradient,
         List<ProgramDayResponse> days,
         Instant createdAt,
         Instant updatedAt) {}

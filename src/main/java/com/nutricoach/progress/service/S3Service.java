@@ -27,7 +27,11 @@ public class S3Service {
                                                ProgressPhoto.PhotoType photoType, String contentType) {
         String s3Key = "photos/%s/%s/%s-%s.jpg".formatted(
                 coachId, progressLogId, photoType.name().toLowerCase(), UUID.randomUUID());
+        return presignUpload(s3Key, contentType);
+    }
 
+    /** Generic pre-signed PUT for any S3 key (e.g. program cover images). */
+    public PresignedUploadResult presignUpload(String s3Key, String contentType) {
         if (isLocalDev()) {
             return new PresignedUploadResult("https://local-dummy-upload-url.example.com/" + s3Key, s3Key);
         }
@@ -42,6 +46,10 @@ public class S3Service {
         );
 
         return new PresignedUploadResult(presigned.url().toString(), s3Key);
+    }
+
+    public static String programCoverKey(UUID coachId, UUID programId) {
+        return "program-covers/%s/%s-%s".formatted(coachId, programId, UUID.randomUUID());
     }
 
     public String presignDownload(String s3Key) {

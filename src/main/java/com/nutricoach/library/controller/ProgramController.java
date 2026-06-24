@@ -3,6 +3,7 @@ package com.nutricoach.library.controller;
 import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
 import com.nutricoach.library.dto.*;
+import com.nutricoach.library.service.ProgramAssignmentService;
 import com.nutricoach.library.service.ProgramService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class ProgramController {
 
     private final ProgramService programService;
+    private final ProgramAssignmentService programAssignmentService;
     private final SecurityUtils securityUtils;
 
     @PostMapping
@@ -81,5 +83,46 @@ public class ProgramController {
                                                                  @PathVariable int dayNumber) {
         UUID coachId = securityUtils.getCurrentCoachId();
         return ResponseEntity.ok(ApiResponse.ok("Day cleared", programService.clearDay(id, coachId, dayNumber)));
+    }
+
+    @PostMapping("/{id}/cover")
+    @Operation(summary = "Initiate a cover-image upload", description = "Stores the S3 key and returns a pre-signed PUT URL for direct upload")
+    public ResponseEntity<ApiResponse<ProgramCoverUploadResponse>> initiateCoverUpload(
+            @PathVariable UUID id, @Valid @RequestBody ProgramCoverUploadRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Upload to the provided URL", programService.initiateCoverUpload(id, coachId, req)));
+    }
+
+    @DeleteMapping("/{id}/cover")
+    @Operation(summary = "Remove a program's cover image")
+    public ResponseEntity<ApiResponse<Void>> deleteCover(@PathVariable UUID id) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        programService.deleteCover(id, coachId);
+        return ResponseEntity.ok(ApiResponse.ok("Cover removed", null));
+    }
+
+    @PostMapping("/{id}/assignments")
+    @Operation(summary = "Assign a program to one or more clients")
+    public ResponseEntity<ApiResponse<List<ProgramAssignmentResponse>>> assign(
+            @PathVariable UUID id, @Valid @RequestBody AssignProgramRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Program assigned", programAssignmentService.assign(id, coachId, req)));
+    }
+
+    @GetMapping("/{id}/assignments")
+    @Operation(summary = "List active assignments for a program")
+    public ResponseEntity<ApiResponse<List<ProgramAssignmentResponse>>> listAssignments(@PathVariable UUID id) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok(programAssignmentService.listByProgram(id, coachId)));
+    }
+
+    @DeleteMapping("/{id}/assignments/{assignmentId}")
+    @Operation(summary = "Soft-delete a program assignment")
+    public ResponseEntity<ApiResponse<Void>> unassign(@PathVariable UUID id, @PathVariable UUID assignmentId) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        programAssignmentService.unassign(id, assignmentId, coachId);
+        return ResponseEntity.ok(ApiResponse.ok("Assignment removed", null));
     }
 }

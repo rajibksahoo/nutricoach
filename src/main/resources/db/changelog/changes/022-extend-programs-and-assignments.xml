@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Program Builder fields: weeks, modality, experience level, tags,   -->
+    <!-- cover image (S3 key + fallback gradient); plus program-to-client   -->
+    <!-- assignment table mirroring client_workout_assignments.             -->
+    <!-- ================================================================= -->
+
+    <changeSet id="022-programs-add-builder-fields" author="nutricoach">
+        <addColumn tableName="programs">
+            <column name="weeks" type="int"/>
+            <column name="modality" type="varchar(60)"/>
+            <column name="experience_level" type="varchar(40)"/>
+            <column name="tags" type="jsonb" defaultValueComputed="'[]'::jsonb"/>
+            <column name="cover_s3_key" type="varchar(500)"/>
+            <column name="cover_gradient" type="varchar(120)"/>
+        </addColumn>
+
+        <!-- Backfill weeks from existing duration_days (round up). -->
+        <sql>UPDATE programs SET weeks = CEIL(duration_days / 7.0) WHERE weeks IS NULL;</sql>
+
+        <rollback>
+            <dropColumn tableName="programs" columnName="weeks"/>
+            <dropColumn tableName="programs" columnName="modality"/>
+            <dropColumn tableName="programs" columnName="experience_level"/>
+            <dropColumn tableName="programs" columnName="tags"/>
+            <dropColumn tableName="programs" columnName="cover_s3_key"/>
+            <dropColumn tableName="programs" columnName="cover_gradient"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="022-create-client-program-assignments" author="nutricoach">
+        <createTable tableName="client_program_assignments">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cpa_coach" references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cpa_client" references="clients(id)"/>
+            </column>
+            <column name="program_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cpa_program" references="programs(id)"/>
+            </column>
+            <column name="assigned_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_date" type="date"/>
+            <column name="notes" type="text"/>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+        </createTable>
+
+        <createIndex tableName="client_program_assignments" indexName="idx_cpa_coach_client">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+        </createIndex>
+
+        <sql>
+            CREATE UNIQUE INDEX uq_cpa_active
+              ON client_program_assignments (client_id, program_id)
+              WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uq_cpa_active;</sql>
+            <dropTable tableName="client_program_assignments"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
