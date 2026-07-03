@@ -51,4 +51,7 @@
     <!-- Program Builder: weeks/modality/experience/tags/cover + program assignments -->
     <include file="db/changelog/changes/022-extend-programs-and-assignments.xml"/>
 
+    <!-- Local dev: seed workouts + programs for the demo coach (context="local") -->
+    <include file="db/changelog/changes/023-seed-workouts-programs.xml" context="local"/>
+
 </databaseChangeLog>
