@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!--
+        Seed a realistic fitness library for the Demo Coach
+        (00000000-0000-0000-0000-000000000001) so the Library and client
+        portal have workouts + programs to show in local dev.
+
+        `context="local"` only — never runs in prod or the integration-test DB.
+
+        Contents:
+          - 10 bodyweight exercises (same set as scripts/seed-exercises.sql),
+            inserted only if the coach doesn't already have them by name, so
+            this is safe whether or not that manual script was run.
+          - 3 workouts, each built from coach-owned sections + exercise rows.
+          - 2 programs with day-by-day schedules pointing at those workouts.
+          - 2 program-to-client assignments (Priya, Arjun) so the portal shows
+            an active program.
+
+        Exercises are referenced by (coach_id, name) rather than a hardcoded
+        id, because seed-exercises.sql inserts them with gen_random_uuid().
+        Workouts/sections/programs use fixed UUIDs so the rollback is clean.
+    -->
+    <changeSet id="023-seed-workouts-programs" author="nutricoach" context="local">
+
+        <!-- ===================================================== -->
+        <!-- 1. Exercises (Demo Coach) — idempotent by name        -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO exercises (
+                id, coach_id, name, description, muscle_group, equipment,
+                video_url, notes, category, movement_pattern, tags, is_custom,
+                created_at, updated_at
+            )
+            SELECT
+                gen_random_uuid(), '00000000-0000-0000-0000-000000000001',
+                e.name, e.description, e.muscle_group, e.equipment,
+                e.video_url, e.notes, e.category, e.movement_pattern,
+                e.tags::jsonb, false, now(), now()
+            FROM (VALUES
+                ('Push-Up',
+                 'Classic upper-body pressing movement. Hands shoulder-width, body in a straight line, lower until chest is just above the floor, press back up.',
+                 'chest', 'none', 'https://www.youtube.com/watch?v=IODxDxX7oi4',
+                 'Scale with knee push-ups or feet elevated.', 'bodyweight', 'horizontal_push',
+                 '["beginner","home","upper-body"]'),
+                ('Bodyweight Squat',
+                 'Foundational lower-body movement. Feet shoulder-width, sit back and down keeping chest tall, knees tracking over toes.',
+                 'quads', 'none', 'https://www.youtube.com/watch?v=aclHkVaku9U',
+                 'Aim for thighs parallel or below.', 'bodyweight', 'squat',
+                 '["beginner","home","lower-body"]'),
+                ('Glute Bridge',
+                 'Lie on back, knees bent, feet flat. Drive through heels to lift hips until straight from shoulders to knees. Squeeze glutes at the top.',
+                 'glutes', 'none', 'https://www.youtube.com/watch?v=wPM8icPu6H8',
+                 'Hold 2s at the top. Progress to single-leg.', 'bodyweight', 'hinge',
+                 '["beginner","home","posterior-chain"]'),
+                ('Reverse Lunge',
+                 'Standing tall, step one foot back and lower until both knees are at ~90 degrees, front shin vertical. Push through the front heel to return.',
+                 'quads', 'none', 'https://www.youtube.com/watch?v=QOVaHwm-Q6U',
+                 'Easier on knees than forward lunges.', 'bodyweight', 'lunge',
+                 '["beginner","home","unilateral"]'),
+                ('Plank',
+                 'Forearms on the ground, elbows under shoulders, body in a straight line. Brace the core, squeeze glutes, breathe normally.',
+                 'core', 'none', 'https://www.youtube.com/watch?v=ASdvN_XEl_c',
+                 'Start with 20-30s holds, build to 60s.', 'timed', 'core_anti_extension',
+                 '["beginner","home","core","isometric"]'),
+                ('Mountain Climbers',
+                 'From a high plank, drive knees toward chest alternately at a quick pace. Keep hips low and core tight.',
+                 'core', 'none', 'https://www.youtube.com/watch?v=nmwgirgXLYM',
+                 '30s on, 30s rest. Slow for core, fast for cardio.', 'cardio', 'core_dynamic',
+                 '["intermediate","home","cardio","conditioning"]'),
+                ('Bird Dog',
+                 'On hands and knees, extend opposite arm and leg until parallel to floor, hold briefly, return. Spine stays neutral throughout.',
+                 'core', 'none', 'https://www.youtube.com/watch?v=wiFNA3sqjCA',
+                 '8-10 reps per side, controlled tempo.', 'bodyweight', 'core_anti_rotation',
+                 '["beginner","home","core","mobility"]'),
+                ('Superman',
+                 'Lie face-down, arms extended overhead. Lift arms, chest, and legs off the floor, squeeze the lower back and glutes, hold 1-2s, lower with control.',
+                 'back', 'none', 'https://www.youtube.com/watch?v=z6PJMT2y8GQ',
+                 '12-15 reps. Pair with planks.', 'bodyweight', 'core_extension',
+                 '["beginner","home","back","posterior-chain"]'),
+                ('Dead Bug',
+                 'On back, arms straight up, knees bent 90 degrees. Slowly lower opposite arm and leg while pressing lower back into the ground. Return and switch.',
+                 'core', 'none', 'https://www.youtube.com/watch?v=4XLEnwUr1d8',
+                 '6-8 reps per side, very slow tempo.', 'bodyweight', 'core_anti_extension',
+                 '["beginner","home","core","stability"]'),
+                ('Burpees',
+                 'From standing, squat down, kick feet back to a plank, optional push-up, jump feet forward, then explode up into a jump with hands overhead.',
+                 'full_body', 'none', 'https://www.youtube.com/watch?v=dZgVxmf6jkA',
+                 '5-10 reps per round. Step back to scale down.', 'cardio', 'full_body_conditioning',
+                 '["intermediate","home","cardio","conditioning"]'),
+
+                -- Barbell (strength)
+                ('Barbell Back Squat',
+                 'Bar racked across the upper back, feet shoulder-width. Brace the core, sit down and back until thighs reach parallel, then drive up through mid-foot.',
+                 'quads', 'barbell', 'https://www.youtube.com/watch?v=8PMjqgR8Wa8',
+                 'The king of lower-body lifts. Keep the bar over mid-foot; 4-6 reps for strength, 8-12 for hypertrophy.', 'strength', 'squat',
+                 '["barbell","strength","lower-body"]'),
+                ('Barbell Deadlift',
+                 'Hips back, flat back, bar over mid-foot. Take slack out of the bar, then push the floor away, keeping the bar close to the shins and thighs until standing tall.',
+                 'posterior-chain', 'barbell', 'https://www.youtube.com/watch?v=oN8VgSgnhNk',
+                 'Full posterior-chain builder. Reset each rep; never round the lower back under load.', 'strength', 'hinge',
+                 '["barbell","strength","posterior-chain"]'),
+                ('Barbell Bench Press',
+                 'Lying on a flat bench, grip just outside shoulder-width. Lower the bar to mid-chest with elbows tucked ~45 degrees, then press back to lockout.',
+                 'chest', 'barbell', 'https://www.youtube.com/watch?v=rT7DgCr-3pg',
+                 'Primary horizontal press. Keep shoulder blades retracted and feet planted. Use a spotter for heavy sets.', 'strength', 'horizontal_push',
+                 '["barbell","strength","upper-body"]'),
+                ('Barbell Bent-Over Row',
+                 'Hinge to ~45 degrees with a flat back, bar hanging at arms length. Pull the bar to the lower ribs by driving the elbows back, then lower under control.',
+                 'back', 'barbell', 'https://www.youtube.com/watch?v=FWJR5Ve8bnQ',
+                 'Builds a thick mid-back. Avoid using momentum; pause briefly at the top.', 'strength', 'horizontal_pull',
+                 '["barbell","strength","back"]'),
+                ('Barbell Overhead Press',
+                 'Standing, bar at the front rack. Brace the core and glutes, press the bar overhead in a straight line, moving the head back then through at lockout.',
+                 'shoulders', 'barbell', 'https://www.youtube.com/watch?v=yEbczj_FGyI',
+                 'Strict standing press builds pressing power and stability. Do not lean back excessively.', 'strength', 'vertical_push',
+                 '["barbell","strength","shoulders"]'),
+
+                -- Dumbbell (strength)
+                ('Dumbbell Shoulder Press',
+                 'Seated or standing, dumbbells at shoulder height, palms forward. Press overhead until arms are nearly locked, then lower with control to ear level.',
+                 'shoulders', 'dumbbell', 'https://www.youtube.com/watch?v=qEwKCR5JCog',
+                 'Allows a natural pressing path and even side-to-side strength. 8-12 reps.', 'strength', 'vertical_push',
+                 '["dumbbell","strength","shoulders"]'),
+                ('Dumbbell Bicep Curl',
+                 'Standing, dumbbells at your sides, palms forward. Curl the weights toward the shoulders keeping elbows pinned, then lower slowly.',
+                 'biceps', 'dumbbell', 'https://www.youtube.com/watch?v=XE_pHwbst04',
+                 'Avoid swinging. Squeeze at the top; a slow eccentric adds size.', 'strength', 'elbow_flexion',
+                 '["dumbbell","strength","arms"]'),
+                ('Dumbbell Romanian Deadlift',
+                 'Dumbbells in front of the thighs, soft knees. Push the hips back, sliding the weights down the legs until a hamstring stretch, then drive the hips forward.',
+                 'hamstrings', 'dumbbell', 'https://www.youtube.com/watch?v=KYIJdN2gBmQ',
+                 'Targets hamstrings and glutes. Keep a flat back and the weights close to the body.', 'strength', 'hinge',
+                 '["dumbbell","strength","posterior-chain"]'),
+                ('Dumbbell Lateral Raise',
+                 'Standing, dumbbells at your sides, slight bend in the elbows. Raise the weights out to the sides until arms are parallel to the floor, then lower slowly.',
+                 'shoulders', 'dumbbell', 'https://www.youtube.com/watch?v=Y29xKcze8Ik',
+                 'Isolates the side delts for width. Use lighter weight and strict form; lead with the elbows.', 'strength', 'lateral_raise',
+                 '["dumbbell","strength","shoulders"]'),
+
+                -- Machine / Cable (strength)
+                ('Lat Pulldown',
+                 'Seated with thighs secured, grip the bar wider than shoulders. Pull the bar to the upper chest by driving the elbows down and back, then return under control.',
+                 'back', 'cable', 'https://www.youtube.com/watch?v=CAwf7n6Luuc',
+                 'Great vertical-pull builder and a lead-in to pull-ups. Avoid leaning back excessively.', 'strength', 'vertical_pull',
+                 '["cable","machine","back"]'),
+                ('Leg Press',
+                 'Seated in the machine, feet shoulder-width on the platform. Lower the sled until knees reach ~90 degrees, then press back without locking the knees hard.',
+                 'quads', 'machine', 'https://www.youtube.com/watch?v=K5n2vg3oZa4',
+                 'Loads the legs with a supported back. Do not let the lower back round off the pad at the bottom.', 'strength', 'squat',
+                 '["machine","strength","lower-body"]'),
+                ('Cable Tricep Pushdown',
+                 'Facing a high cable with a bar or rope, elbows pinned to your sides. Extend the arms down until straight, squeeze the triceps, then return slowly.',
+                 'triceps', 'cable', 'https://www.youtube.com/watch?v=_w-HpW70nSQ',
+                 'Keep the elbows still; only the forearms move. 10-15 reps for a strong pump.', 'strength', 'elbow_extension',
+                 '["cable","strength","arms"]'),
+
+                -- Cardio / Kettlebell / Mobility
+                ('Kettlebell Swing',
+                 'Hinge at the hips with the bell hiked between the legs, then snap the hips forward to float the bell to chest height. Let it fall and repeat rhythmically.',
+                 'glutes', 'kettlebell', 'https://www.youtube.com/watch?v=8GpQ66AAKU0',
+                 'Explosive hip-hinge for power and conditioning. Power comes from the hips, not the arms.', 'cardio', 'hinge',
+                 '["kettlebell","conditioning","posterior-chain"]'),
+                ('Rowing Machine',
+                 'Drive with the legs first, then lean back slightly and pull the handle to the lower ribs. Reverse the order to return: arms, body, then legs.',
+                 'full_body', 'rowing machine', 'https://www.youtube.com/watch?v=4zWu1yuJ0_g',
+                 'Low-impact full-body cardio. Aim for a strong leg drive and a smooth stroke rate.', 'cardio', 'horizontal_pull',
+                 '["cardio","conditioning","full-body"]'),
+                ('Cat-Cow Stretch',
+                 'On hands and knees, alternate between arching the spine and dropping the belly (cow) and rounding the spine toward the ceiling (cat), moving with the breath.',
+                 'spine', 'none', 'https://www.youtube.com/watch?v=xyNwxiuERXc',
+                 'Gentle spinal mobility drill; ideal for warm-ups or between sets. Move slowly with the breath.', 'mobility', 'spinal_mobility',
+                 '["mobility","warm-up","recovery"]')
+            ) AS e(name, description, muscle_group, equipment, video_url, notes, category, movement_pattern, tags)
+            WHERE NOT EXISTS (
+                SELECT 1 FROM exercises x
+                WHERE x.coach_id = '00000000-0000-0000-0000-000000000001'
+                  AND x.name = e.name AND x.deleted_at IS NULL
+            );
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 2. Workout sections (Demo Coach)                      -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO workout_sections (id, coach_id, name, section_type, description, created_at, updated_at) VALUES
+              -- Workout 1: Full Body Starter
+              ('33333333-3333-3333-3333-000000000001', '00000000-0000-0000-0000-000000000001', 'Warm-Up',        'WARM_UP',   'Light dynamic prep to raise the heart rate.', now(), now()),
+              ('33333333-3333-3333-3333-000000000002', '00000000-0000-0000-0000-000000000001', 'Main Strength',  'MAIN',      'Compound push, squat and lunge work.',        now(), now()),
+              ('33333333-3333-3333-3333-000000000003', '00000000-0000-0000-0000-000000000001', 'Cool-Down',      'COOL_DOWN', 'Core hold to finish.',                        now(), now()),
+              -- Workout 2: Core &amp; Stability
+              ('33333333-3333-3333-3333-000000000004', '00000000-0000-0000-0000-000000000001', 'Activation',     'WARM_UP',   'Spinal stability activation.',                now(), now()),
+              ('33333333-3333-3333-3333-000000000005', '00000000-0000-0000-0000-000000000001', 'Core Circuit',   'MAIN',      'Anti-extension and posterior-chain circuit.', now(), now()),
+              ('33333333-3333-3333-3333-000000000006', '00000000-0000-0000-0000-000000000001', 'Cool-Down',      'COOL_DOWN', 'Core hold to finish.',                        now(), now()),
+              -- Workout 3: HIIT Conditioning
+              ('33333333-3333-3333-3333-000000000007', '00000000-0000-0000-0000-000000000001', 'Warm-Up',        'WARM_UP',   'Raise the heart rate before intervals.',      now(), now()),
+              ('33333333-3333-3333-3333-000000000008', '00000000-0000-0000-0000-000000000001', 'Conditioning Finisher', 'FINISHER', 'High-intensity full-body finisher.',     now(), now());
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 3. Workouts (Demo Coach)                              -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO workouts (id, coach_id, name, description, estimated_duration_minutes, tags, created_at, updated_at) VALUES
+              ('44444444-4444-4444-4444-000000000001', '00000000-0000-0000-0000-000000000001', 'Full Body Starter',
+               'A beginner-friendly full-body session covering push, squat and lunge patterns.', 30, '["beginner","full-body","home"]'::jsonb, now(), now()),
+              ('44444444-4444-4444-4444-000000000002', '00000000-0000-0000-0000-000000000001', 'Core &amp; Stability',
+               'Targeted core and stability work to build a strong, resilient midsection.', 25, '["core","stability","home"]'::jsonb, now(), now()),
+              ('44444444-4444-4444-4444-000000000003', '00000000-0000-0000-0000-000000000001', 'HIIT Conditioning',
+               'A short, sweaty conditioning finisher to build work capacity.', 20, '["hiit","cardio","conditioning"]'::jsonb, now(), now());
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 4. Workout -> section assignments (order)             -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO workout_section_assignments (id, workout_id, section_id, position, created_at, updated_at) VALUES
+              -- Full Body Starter
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000001', '33333333-3333-3333-3333-000000000001', 0, now(), now()),
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000001', '33333333-3333-3333-3333-000000000002', 1, now(), now()),
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000001', '33333333-3333-3333-3333-000000000003', 2, now(), now()),
+              -- Core &amp; Stability
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000002', '33333333-3333-3333-3333-000000000004', 0, now(), now()),
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000002', '33333333-3333-3333-3333-000000000005', 1, now(), now()),
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000002', '33333333-3333-3333-3333-000000000006', 2, now(), now()),
+              -- HIIT Conditioning
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000003', '33333333-3333-3333-3333-000000000007', 0, now(), now()),
+              (gen_random_uuid(), '44444444-4444-4444-4444-000000000003', '33333333-3333-3333-3333-000000000008', 1, now(), now());
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 5. Section exercises (prescription rows)              -->
+        <!--    exercise_id resolved by (coach_id, name)           -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO workout_section_exercises (id, section_id, exercise_id, position, sets, reps, duration_seconds, rest_seconds, notes, created_at, updated_at)
+            SELECT gen_random_uuid(), s.section_id,
+                   (SELECT id FROM exercises x
+                     WHERE x.coach_id = '00000000-0000-0000-0000-000000000001'
+                       AND x.name = s.exercise_name AND x.deleted_at IS NULL
+                     ORDER BY x.created_at LIMIT 1),
+                   s.position, s.sets, s.reps, s.duration_seconds, s.rest_seconds, s.notes, now(), now()
+            FROM (VALUES
+                -- Full Body Starter: warm-up
+                ('33333333-3333-3333-3333-000000000001'::uuid, 'Mountain Climbers', 0, 2, NULL::int, 30, 20, 'Steady pace to warm up.'),
+                -- Full Body Starter: main
+                ('33333333-3333-3333-3333-000000000002'::uuid, 'Push-Up',           0, 3, 12,        NULL, 60, NULL),
+                ('33333333-3333-3333-3333-000000000002'::uuid, 'Bodyweight Squat',  1, 3, 15,        NULL, 60, NULL),
+                ('33333333-3333-3333-3333-000000000002'::uuid, 'Reverse Lunge',     2, 3, 10,        NULL, 60, '10 reps per leg.'),
+                -- Full Body Starter: cool-down
+                ('33333333-3333-3333-3333-000000000003'::uuid, 'Plank',             0, 3, NULL,      40, 30, 'Hold with braced core.'),
+                -- Core &amp; Stability: activation
+                ('33333333-3333-3333-3333-000000000004'::uuid, 'Bird Dog',          0, 2, 10,        NULL, 20, '10 per side.'),
+                -- Core &amp; Stability: circuit
+                ('33333333-3333-3333-3333-000000000005'::uuid, 'Dead Bug',          0, 3, 8,         NULL, 30, '8 per side.'),
+                ('33333333-3333-3333-3333-000000000005'::uuid, 'Superman',          1, 3, 12,        NULL, 30, NULL),
+                ('33333333-3333-3333-3333-000000000005'::uuid, 'Glute Bridge',      2, 3, 15,        NULL, 45, NULL),
+                -- Core &amp; Stability: cool-down
+                ('33333333-3333-3333-3333-000000000006'::uuid, 'Plank',             0, 3, NULL,      45, 30, 'Hold with braced core.'),
+                -- HIIT Conditioning: warm-up
+                ('33333333-3333-3333-3333-000000000007'::uuid, 'Mountain Climbers', 0, 2, NULL,      30, 20, NULL),
+                -- HIIT Conditioning: finisher
+                ('33333333-3333-3333-3333-000000000008'::uuid, 'Burpees',           0, 4, 10,        NULL, 45, NULL),
+                ('33333333-3333-3333-3333-000000000008'::uuid, 'Mountain Climbers', 1, 4, NULL,      30, 30, NULL),
+                ('33333333-3333-3333-3333-000000000008'::uuid, 'Bodyweight Squat',  2, 4, 20,        NULL, 45, 'Fast tempo.')
+            ) AS s(section_id, exercise_name, position, sets, reps, duration_seconds, rest_seconds, notes);
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 6. Programs (Demo Coach)                              -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO programs (id, coach_id, name, description, duration_days, weeks, modality, experience_level, tags, cover_gradient, created_at, updated_at) VALUES
+              ('55555555-5555-5555-5555-000000000001', '00000000-0000-0000-0000-000000000001', '4-Week Foundation',
+               'A four-week bodyweight foundation building strength, core control and conditioning three days a week.',
+               28, 4, 'Bodyweight', 'Beginner', '["beginner","bodyweight","strength"]'::jsonb, 'linear-gradient(135deg, #6366f1, #8b5cf6)', now(), now()),
+              ('55555555-5555-5555-5555-000000000002', '00000000-0000-0000-0000-000000000001', '2-Week Core Focus',
+               'A short two-week block to build midline stability and a stronger core.',
+               14, 2, 'Bodyweight', 'Beginner', '["core","stability","bodyweight"]'::jsonb, 'linear-gradient(135deg, #10b981, #14b8a6)', now(), now());
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 7. Program days (schedule)                            -->
+        <!--    Every day of each program is scheduled. Weeks start -->
+        <!--    on Monday, so Saturday (day % 7 = 6) and Sunday     -->
+        <!--    (day % 7 = 0) are rest days (NULL workout_id). The  -->
+        <!--    3 workouts cycle across the 5 weekdays.             -->
+        <!--    4-Week Foundation = 28 days, 2-Week Core = 14 days. -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO program_days (id, program_id, day_number, workout_id, notes, created_at, updated_at)
+            SELECT gen_random_uuid(), p.program_id, gs.day_number,
+                   CASE (gs.day_number % 7)
+                       WHEN 1 THEN '44444444-4444-4444-4444-000000000001'::uuid  -- Mon: Full Body Starter
+                       WHEN 2 THEN '44444444-4444-4444-4444-000000000002'::uuid  -- Tue: Core &amp; Stability
+                       WHEN 3 THEN '44444444-4444-4444-4444-000000000003'::uuid  -- Wed: HIIT Conditioning
+                       WHEN 4 THEN '44444444-4444-4444-4444-000000000001'::uuid  -- Thu: Full Body Starter
+                       WHEN 5 THEN '44444444-4444-4444-4444-000000000002'::uuid  -- Fri: Core &amp; Stability
+                       ELSE NULL                                                 -- Sat/Sun: rest
+                   END,
+                   CASE (gs.day_number % 7)
+                       WHEN 1 THEN 'Full body' WHEN 2 THEN 'Core' WHEN 3 THEN 'HIIT'
+                       WHEN 4 THEN 'Full body' WHEN 5 THEN 'Core' ELSE 'Rest'
+                   END,
+                   now(), now()
+            FROM (VALUES
+                ('55555555-5555-5555-5555-000000000001'::uuid, 28),
+                ('55555555-5555-5555-5555-000000000002'::uuid, 14)
+            ) AS p(program_id, total_days)
+            CROSS JOIN LATERAL generate_series(1, p.total_days) AS gs(day_number);
+        </sql>
+
+        <!-- ===================================================== -->
+        <!-- 8. Program -> client assignments                      -->
+        <!-- ===================================================== -->
+        <sql>
+            INSERT INTO client_program_assignments (id, coach_id, client_id, program_id, assigned_at, start_date, notes, created_at, updated_at) VALUES
+              ('77777777-7777-7777-7777-000000000001', '00000000-0000-0000-0000-000000000001',
+               '11111111-1111-1111-1111-000000000001', '55555555-5555-5555-5555-000000000001',
+               now(), current_date, 'Kick-off program for Priya.', now(), now()),
+              ('77777777-7777-7777-7777-000000000002', '00000000-0000-0000-0000-000000000001',
+               '11111111-1111-1111-1111-000000000002', '55555555-5555-5555-5555-000000000002',
+               now(), current_date, 'Core block for Arjun.', now(), now());
+        </sql>
+
+        <rollback>
+            <delete tableName="client_program_assignments">
+                <where>id IN (
+                    '77777777-7777-7777-7777-000000000001',
+                    '77777777-7777-7777-7777-000000000002'
+                )</where>
+            </delete>
+            <delete tableName="program_days">
+                <where>program_id IN (
+                    '55555555-5555-5555-5555-000000000001',
+                    '55555555-5555-5555-5555-000000000002'
+                )</where>
+            </delete>
+            <delete tableName="programs">
+                <where>id IN (
+                    '55555555-5555-5555-5555-000000000001',
+                    '55555555-5555-5555-5555-000000000002'
+                )</where>
+            </delete>
+            <delete tableName="workout_section_exercises">
+                <where>section_id IN (
+                    '33333333-3333-3333-3333-000000000001',
+                    '33333333-3333-3333-3333-000000000002',
+                    '33333333-3333-3333-3333-000000000003',
+                    '33333333-3333-3333-3333-000000000004',
+                    '33333333-3333-3333-3333-000000000005',
+                    '33333333-3333-3333-3333-000000000006',
+                    '33333333-3333-3333-3333-000000000007',
+                    '33333333-3333-3333-3333-000000000008'
+                )</where>
+            </delete>
+            <delete tableName="workout_section_assignments">
+                <where>workout_id IN (
+                    '44444444-4444-4444-4444-000000000001',
+                    '44444444-4444-4444-4444-000000000002',
+                    '44444444-4444-4444-4444-000000000003'
+                )</where>
+            </delete>
+            <delete tableName="workouts">
+                <where>id IN (
+                    '44444444-4444-4444-4444-000000000001',
+                    '44444444-4444-4444-4444-000000000002',
+                    '44444444-4444-4444-4444-000000000003'
+                )</where>
+            </delete>
+            <delete tableName="workout_sections">
+                <where>id IN (
+                    '33333333-3333-3333-3333-000000000001',
+                    '33333333-3333-3333-3333-000000000002',
+                    '33333333-3333-3333-3333-000000000003',
+                    '33333333-3333-3333-3333-000000000004',
+                    '33333333-3333-3333-3333-000000000005',
+                    '33333333-3333-3333-3333-000000000006',
+                    '33333333-3333-3333-3333-000000000007',
+                    '33333333-3333-3333-3333-000000000008'
+                )</where>
+            </delete>
+            <delete tableName="exercises">
+                <where>coach_id = '00000000-0000-0000-0000-000000000001'
+                       AND name IN (
+                    'Push-Up','Bodyweight Squat','Glute Bridge','Reverse Lunge','Plank',
+                    'Mountain Climbers','Bird Dog','Superman','Dead Bug','Burpees',
+                    'Barbell Back Squat','Barbell Deadlift','Barbell Bench Press',
+                    'Barbell Bent-Over Row','Barbell Overhead Press',
+                    'Dumbbell Shoulder Press','Dumbbell Bicep Curl','Dumbbell Romanian Deadlift',
+                    'Dumbbell Lateral Raise','Lat Pulldown','Leg Press','Cable Tricep Pushdown',
+                    'Kettlebell Swing','Rowing Machine','Cat-Cow Stretch'
+                )</where>
+            </delete>
+        </rollback>
+
+    </changeSet>
+
+</databaseChangeLog>
