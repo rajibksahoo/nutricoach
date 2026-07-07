@@ -24,7 +24,7 @@ Coaches pay monthly to manage clients, create meal plans, track progress, and ha
 | Storage | AWS S3 ap-south-1 (Mumbai) |
 | Deploy | Railway (backend) + Vercel (frontend) + GitHub Actions |
 | Rate limiting | bucket4j |
-| Mobile (later) | React Native + Expo, Android-first |
+| Mobile | Native Android app (Kotlin + Jetpack Compose) in sibling repo `nutricoach-android/` — consumes the client-portal API |
 
 ## Commands
 
