@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Client-marked workout completions: a client taps "done" on one of  -->
+    <!-- their derived upcoming/today workouts. One row per                 -->
+    <!-- (client &amp; workout &amp; date); the upcoming list reflects it.   -->
+    <!-- ================================================================= -->
+
+    <changeSet id="024-create-client-workout-completions" author="nutricoach">
+        <createTable tableName="client_workout_completions">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwc_coach" references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwc_client" references="clients(id)"/>
+            </column>
+            <column name="workout_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_cwc_workout" references="workouts(id)"/>
+            </column>
+            <column name="workout_date" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="completed_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+        </createTable>
+
+        <createIndex tableName="client_workout_completions" indexName="idx_cwc_coach_client">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+        </createIndex>
+
+        <addUniqueConstraint tableName="client_workout_completions"
+                             columnNames="client_id, workout_id, workout_date"
+                             constraintName="uq_cwc_client_workout_date"/>
+
+        <rollback>
+            <dropTable tableName="client_workout_completions"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

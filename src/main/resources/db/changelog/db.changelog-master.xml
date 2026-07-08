@@ -54,4 +54,7 @@
     <!-- Local dev: seed workouts + programs for the demo coach (context="local") -->
     <include file="db/changelog/changes/023-seed-workouts-programs.xml" context="local"/>
 
+    <!-- Client-marked workout completions (portal) -->
+    <include file="db/changelog/changes/024-create-client-workout-completions.xml"/>
+
 </databaseChangeLog>

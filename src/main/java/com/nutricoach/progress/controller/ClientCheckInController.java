@@ -3,14 +3,19 @@ package com.nutricoach.progress.controller;
 import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
 import com.nutricoach.progress.dto.CheckInResponse;
+import com.nutricoach.progress.dto.CreateCheckInRequest;
 import com.nutricoach.progress.service.CheckInService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,5 +39,19 @@ public class ClientCheckInController {
         UUID clientId = securityUtils.getCurrentClientId();
         UUID coachId  = securityUtils.getCurrentCoachIdFromToken();
         return ResponseEntity.ok(ApiResponse.ok(checkInService.getHistory(clientId, coachId)));
+    }
+
+    @PostMapping
+    @Operation(summary = "Submit a check-in", description = "Creates a check-in for the authenticated client")
+    public ResponseEntity<ApiResponse<CheckInResponse>> create(
+            @Valid @RequestBody CreateCheckInRequest request) {
+        UUID clientId = securityUtils.getCurrentClientId();
+        UUID coachId  = securityUtils.getCurrentCoachIdFromToken();
+        // Clients may not author coach notes — strip the field before it reaches the service.
+        CreateCheckInRequest sanitized = new CreateCheckInRequest(
+                request.checkInDate(), request.mealPlanId(),
+                request.adherencePercent(), request.clientNotes(), null);
+        CheckInResponse checkIn = checkInService.create(clientId, coachId, sanitized);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Check-in submitted", checkIn));
     }
 }

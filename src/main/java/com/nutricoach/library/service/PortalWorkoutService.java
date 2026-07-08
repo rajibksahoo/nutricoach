@@ -4,23 +4,29 @@ import com.nutricoach.library.dto.ClientScheduledWorkoutResponse;
 import com.nutricoach.library.dto.ClientWorkoutLineResponse;
 import com.nutricoach.library.dto.SectionExerciseResponse;
 import com.nutricoach.library.dto.WorkoutResponse;
+import com.nutricoach.common.exception.NutriCoachException;
 import com.nutricoach.library.entity.ClientProgramAssignment;
+import com.nutricoach.library.entity.ClientWorkoutCompletion;
 import com.nutricoach.library.entity.Program;
 import com.nutricoach.library.entity.ProgramDay;
 import com.nutricoach.library.repository.ClientProgramAssignmentRepository;
+import com.nutricoach.library.repository.ClientWorkoutCompletionRepository;
 import com.nutricoach.library.repository.ProgramDayRepository;
 import com.nutricoach.library.repository.ProgramRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -34,6 +40,7 @@ public class PortalWorkoutService {
     private final ClientProgramAssignmentRepository assignmentRepository;
     private final ProgramRepository programRepository;
     private final ProgramDayRepository programDayRepository;
+    private final ClientWorkoutCompletionRepository completionRepository;
     private final WorkoutService workoutService;
 
     @Transactional(readOnly = true)
@@ -42,6 +49,13 @@ public class PortalWorkoutService {
         List<ClientScheduledWorkoutResponse> out = new ArrayList<>();
         // Cache derived exercise lines per distinct workout to avoid re-fetching.
         Map<UUID, WorkoutResponse> workoutCache = new HashMap<>();
+
+        // Load all of this client's completions once (no N+1): key by workout+date.
+        Set<String> completedKeys = new HashSet<>();
+        for (ClientWorkoutCompletion c : completionRepository
+                .findByCoachIdAndClientIdAndDeletedAtIsNull(coachId, clientId)) {
+            completedKeys.add(completionKey(c.getWorkoutId(), c.getWorkoutDate()));
+        }
 
         List<ClientProgramAssignment> assignments = assignmentRepository
                 .findByCoachIdAndClientIdAndDeletedAtIsNullOrderByAssignedAtDesc(coachId, clientId);
@@ -75,14 +89,47 @@ public class PortalWorkoutService {
                     });
                 }
 
+                boolean completed = completedKeys.contains(completionKey(workout.id(), date));
                 out.add(new ClientScheduledWorkoutResponse(
                         date, program.getId(), program.getName(),
-                        workout.id(), workout.name(), lines.size(), lines));
+                        workout.id(), workout.name(), lines.size(), lines, completed));
             }
         }
 
         out.sort(Comparator.comparing(ClientScheduledWorkoutResponse::date));
         return out;
+    }
+
+    /**
+     * Marks one of the client's derived upcoming/today workouts as completed.
+     * Idempotent: completing an already-completed (client, workout, date) is a
+     * no-op that returns success. Rejects a (workoutId, date) that does not match
+     * a currently-scheduled workout so clients cannot write junk rows.
+     */
+    @Transactional
+    public ClientScheduledWorkoutResponse complete(UUID clientId, UUID coachId, UUID workoutId, LocalDate date) {
+        ClientScheduledWorkoutResponse match = listUpcoming(clientId, coachId).stream()
+                .filter(w -> w.workoutId().equals(workoutId) && w.date().equals(date))
+                .findFirst()
+                .orElseThrow(() -> NutriCoachException.notFound(
+                        "No scheduled workout found for that workout and date"));
+
+        // Idempotent via find-first: only insert when no active completion exists.
+        completionRepository
+                .findByCoachIdAndClientIdAndWorkoutIdAndWorkoutDateAndDeletedAtIsNull(
+                        coachId, clientId, workoutId, date)
+                .orElseGet(() -> completionRepository.save(ClientWorkoutCompletion.builder()
+                        .coachId(coachId).clientId(clientId).workoutId(workoutId)
+                        .workoutDate(date).completedAt(Instant.now()).build()));
+
+        return new ClientScheduledWorkoutResponse(
+                match.date(), match.programId(), match.programName(),
+                match.workoutId(), match.workoutName(), match.exerciseCount(),
+                match.exercises(), true);
+    }
+
+    private static String completionKey(UUID workoutId, LocalDate date) {
+        return workoutId + "|" + date;
     }
 
     private WorkoutResponse loadWorkout(UUID workoutId, UUID coachId) {

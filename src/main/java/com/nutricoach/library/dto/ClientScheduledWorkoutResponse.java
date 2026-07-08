@@ -11,4 +11,5 @@ public record ClientScheduledWorkoutResponse(
         UUID workoutId,
         String workoutName,
         int exerciseCount,
-        List<ClientWorkoutLineResponse> exercises) {}
+        List<ClientWorkoutLineResponse> exercises,
+        boolean completed) {}
