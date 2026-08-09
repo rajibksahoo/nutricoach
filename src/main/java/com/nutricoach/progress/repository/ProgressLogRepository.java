@@ -18,4 +18,7 @@ public interface ProgressLogRepository extends JpaRepository<ProgressLog, UUID> 
     Optional<ProgressLog> findByClientIdAndCoachIdAndLoggedDate(UUID clientId, UUID coachId, LocalDate loggedDate);
 
     Optional<ProgressLog> findByIdAndCoachId(UUID id, UUID coachId);
+
+    /** Newest logs across all clients — dashboard activity feed. */
+    List<ProgressLog> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
 }

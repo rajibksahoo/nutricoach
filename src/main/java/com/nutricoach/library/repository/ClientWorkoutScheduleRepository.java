@@ -16,4 +16,7 @@ public interface ClientWorkoutScheduleRepository extends JpaRepository<ClientWor
     List<ClientWorkoutSchedule> findByCoachIdAndClientIdAndDeletedAtIsNullOrderByScheduledDateAsc(UUID coachId, UUID clientId);
 
     Optional<ClientWorkoutSchedule> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
+
+    /** Every client's sessions booked for one date — dashboard "today" panel. */
+    List<ClientWorkoutSchedule> findByCoachIdAndScheduledDateAndDeletedAtIsNull(UUID coachId, LocalDate scheduledDate);
 }

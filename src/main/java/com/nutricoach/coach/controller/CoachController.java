@@ -1,9 +1,11 @@
 package com.nutricoach.coach.controller;
 
 import com.nutricoach.coach.dto.CoachResponse;
+import com.nutricoach.coach.dto.DashboardOverviewResponse;
 import com.nutricoach.coach.dto.DashboardResponse;
 import com.nutricoach.coach.dto.UpdateCoachRequest;
 import com.nutricoach.coach.service.CoachService;
+import com.nutricoach.coach.service.DashboardOverviewService;
 import com.nutricoach.coach.service.DashboardService;
 import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
@@ -26,14 +28,28 @@ public class CoachController {
 
     private final CoachService coachService;
     private final DashboardService dashboardService;
+    private final DashboardOverviewService dashboardOverviewService;
     private final SecurityUtils securityUtils;
 
     @GetMapping("/dashboard")
-    @Operation(summary = "Get coach dashboard",
-               description = "Returns client counts by status, meal plan totals, clients needing a plan, and 5 most recent clients")
+    @Operation(summary = "Get coach dashboard (deprecated)",
+               description = "Deprecated — use GET /api/v1/coach/dashboard/overview. "
+                           + "Returns client counts by status, meal plan totals, clients needing a plan, and 5 most recent clients")
+    @Deprecated
     public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard() {
         return ResponseEntity.ok(ApiResponse.ok(
                 dashboardService.getDashboard(securityUtils.getCurrentCoachId())
+        ));
+    }
+
+    @GetMapping("/dashboard/overview")
+    @Operation(summary = "Get coach dashboard overview",
+               description = "Everything the dashboard renders in one call: counts, a prioritised action queue "
+                           + "(unanswered messages, overdue check-ins, expiring/missing meal plans, onboarding clients), "
+                           + "today's sessions and check-ins, roster and tier limit, subscription/trial state, and a recent activity feed")
+    public ResponseEntity<ApiResponse<DashboardOverviewResponse>> getDashboardOverview() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                dashboardOverviewService.getOverview(securityUtils.getCurrentCoachId())
         ));
     }
 
