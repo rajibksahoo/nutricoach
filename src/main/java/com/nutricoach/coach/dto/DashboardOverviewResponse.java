@@ -74,10 +74,10 @@ public record DashboardOverviewResponse(
     /** @param clientLimit tier cap on clients, or -1 when unlimited */
     public record Roster(
             long clientLimit,
-            List<RecentClient> recentClients
+            List<RosterClient> recentClients
     ) {}
 
-    public record RecentClient(
+    public record RosterClient(
             UUID id,
             String name,
             String phone,

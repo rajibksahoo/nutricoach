@@ -8,8 +8,8 @@ import com.nutricoach.coach.dto.DashboardOverviewResponse.ActionItem;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.ActivityItem;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.CheckInToday;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.Counts;
-import com.nutricoach.coach.dto.DashboardOverviewResponse.RecentClient;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.Roster;
+import com.nutricoach.coach.dto.DashboardOverviewResponse.RosterClient;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.ScheduledSession;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.SubscriptionInfo;
 import com.nutricoach.coach.entity.Coach;
@@ -183,9 +183,9 @@ public class DashboardOverviewService {
 
         // ── Roster ───────────────────────────────────────────────────────────
         int limit = subscriptionGate.clientLimitFor(coach);
-        List<RecentClient> recent = clientRepository
+        List<RosterClient> recent = clientRepository
                 .findTop5ByCoachIdAndDeletedAtIsNullOrderByCreatedAtDesc(coachId).stream()
-                .map(c -> new RecentClient(c.getId(), c.getName(), c.getPhone(),
+                .map(c -> new RosterClient(c.getId(), c.getName(), c.getPhone(),
                         c.getStatus().name(), c.getCreatedAt()))
                 .toList();
         Roster roster = new Roster(limit == Integer.MAX_VALUE ? -1 : limit, recent);
