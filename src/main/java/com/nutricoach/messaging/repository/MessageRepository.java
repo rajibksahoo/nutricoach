@@ -32,6 +32,28 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             @Param("coachId") UUID coachId,
             @Param("clientId") UUID clientId);
 
+    /**
+     * One row per conversation that has unread client messages — dashboard action queue.
+     * Avoids a per-client count query.
+     */
+    @Query("""
+        SELECT m.clientId AS clientId, COUNT(m) AS unreadCount, MAX(m.createdAt) AS lastMessageAt
+        FROM Message m
+        WHERE m.coachId = :coachId AND m.senderType = 'CLIENT' AND m.readAt IS NULL
+        GROUP BY m.clientId
+        """)
+    List<UnreadConversation> findUnreadConversations(@Param("coachId") UUID coachId);
+
+    /** Projection for {@link #findUnreadConversations}. */
+    interface UnreadConversation {
+        UUID getClientId();
+        long getUnreadCount();
+        Instant getLastMessageAt();
+    }
+
+    /** Newest messages across all of a coach's conversations — dashboard activity feed. */
+    List<Message> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
+
     /** Count unread messages (sent by client, not yet read) for a conversation. */
     @Query("""
         SELECT COUNT(m) FROM Message m

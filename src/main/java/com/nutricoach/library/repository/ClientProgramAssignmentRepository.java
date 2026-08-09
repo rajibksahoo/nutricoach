@@ -16,4 +16,7 @@ public interface ClientProgramAssignmentRepository extends JpaRepository<ClientP
     Optional<ClientProgramAssignment> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
 
     Optional<ClientProgramAssignment> findByClientIdAndProgramIdAndDeletedAtIsNull(UUID clientId, UUID programId);
+
+    /** Every active assignment for a coach — dashboard derives today's program sessions from these. */
+    List<ClientProgramAssignment> findByCoachIdAndDeletedAtIsNull(UUID coachId);
 }

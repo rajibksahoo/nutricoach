@@ -43,7 +43,11 @@ public class SubscriptionGate {
         }
     }
 
-    private int clientLimitFor(Coach coach) {
+    /**
+     * Client cap for a coach's current tier/status. {@link Integer#MAX_VALUE} means unlimited.
+     * Public so read-only callers (e.g. the dashboard) report the same limit this gate enforces.
+     */
+    public int clientLimitFor(Coach coach) {
         // During trial, use TRIAL limits regardless of tier
         if (coach.getSubscriptionStatus() == Coach.SubscriptionStatus.TRIAL) {
             return 5;
