@@ -44,7 +44,7 @@ public class CheckInReminderScheduler {
             try {
                 LocalDate sevenDaysAgo = LocalDate.now().minusDays(7);
                 boolean hasRecentCheckIn =
-                        checkInRepository.existsByClientIdAndCheckInDateAfter(client.getId(), sevenDaysAgo);
+                        checkInRepository.existsByClientIdAndCheckInDateAfterAndDeletedAtIsNull(client.getId(), sevenDaysAgo);
 
                 if (hasRecentCheckIn) {
                     continue;

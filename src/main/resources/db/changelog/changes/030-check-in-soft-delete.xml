@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Check-ins become editable and removable by the coach, so they need -->
+    <!-- the soft-delete column every other entity here carries. Nothing is -->
+    <!-- hard-deleted in this schema.                                       -->
+    <!-- ================================================================= -->
+
+    <changeSet id="030-check-in-soft-delete" author="nutricoach">
+        <addColumn tableName="check_ins">
+            <column name="deleted_at" type="timestamptz"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="check_ins" columnName="deleted_at"/>
+        </rollback>
+    </changeSet>
+
+    <!-- ================================================================= -->
+    <!-- uq_check_ins_client_date is a plain UNIQUE (client_id,             -->
+    <!-- check_in_date), so it counts soft-deleted rows. With the column    -->
+    <!-- above that turns a removal into a trap: delete a check-in by       -->
+    <!-- mistake and that date can never be used again.                     -->
+    <!--                                                                    -->
+    <!-- Replaced with a partial index over active rows only, matching how  -->
+    <!-- uq_clients_phone_active works.                                     -->
+    <!-- ================================================================= -->
+
+    <changeSet id="030b-check-in-date-unique-excludes-deleted" author="nutricoach">
+        <sql>
+            ALTER TABLE check_ins DROP CONSTRAINT IF EXISTS uq_check_ins_client_date;
+            CREATE UNIQUE INDEX uq_check_ins_client_date_active
+                ON check_ins (client_id, check_in_date)
+                WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql>
+                DROP INDEX IF EXISTS uq_check_ins_client_date_active;
+                ALTER TABLE check_ins ADD CONSTRAINT uq_check_ins_client_date
+                    UNIQUE (client_id, check_in_date);
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

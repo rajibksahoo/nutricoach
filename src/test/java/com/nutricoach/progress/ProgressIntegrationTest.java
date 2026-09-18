@@ -45,7 +45,7 @@ class ProgressIntegrationTest extends AbstractIntegrationTest {
         coachRepository.findByPhone("9600000001").ifPresent(existing -> {
             clientRepository.findAllByCoachId(existing.getId()).forEach(c -> {
                 checkInRepository.deleteAll(
-                        checkInRepository.findByClientIdAndCoachIdOrderByCheckInDateDesc(c.getId(), existing.getId()));
+                        checkInRepository.findByClientIdAndCoachIdAndDeletedAtIsNullOrderByCheckInDateDesc(c.getId(), existing.getId()));
                 progressLogRepository.deleteAll(
                         progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId()));
                 mealPlanRepository.findByClientIdAndCoachIdAndDeletedAtIsNull(c.getId(), existing.getId())

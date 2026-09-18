@@ -72,4 +72,7 @@
     <!-- PORTAL_INVITE notification type -->
     <include file="db/changelog/changes/029-notification-type-portal-invite.xml"/>
 
+    <!-- Coaches can edit and remove check-ins, so they need soft delete -->
+    <include file="db/changelog/changes/030-check-in-soft-delete.xml"/>
+
 </databaseChangeLog>

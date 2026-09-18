@@ -275,7 +275,7 @@ public class DashboardOverviewService {
         });
         sessions.sort(Comparator.comparing(ScheduledSession::clientName, String.CASE_INSENSITIVE_ORDER));
 
-        List<CheckInToday> checkIns = checkInRepository.findByCoachIdAndCheckInDate(coachId, today).stream()
+        List<CheckInToday> checkIns = checkInRepository.findByCoachIdAndCheckInDateAndDeletedAtIsNull(coachId, today).stream()
                 .filter(ci -> clientsById.containsKey(ci.getClientId()))
                 .map(ci -> new CheckInToday(ci.getClientId(),
                         clientsById.get(ci.getClientId()).getName(), ci.getAdherencePercent()))
@@ -303,7 +303,7 @@ public class DashboardOverviewService {
                     who + ": " + truncate(m.getContent()), m.getCreatedAt()));
         }
 
-        for (CheckIn ci : checkInRepository.findTop15ByCoachIdOrderByCreatedAtDesc(coachId)) {
+        for (CheckIn ci : checkInRepository.findTop15ByCoachIdAndDeletedAtIsNullOrderByCreatedAtDesc(coachId)) {
             Client c = clientsById.get(ci.getClientId());
             if (c == null) continue;
             String summary = ci.getAdherencePercent() != null

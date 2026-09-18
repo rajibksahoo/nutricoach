@@ -19,7 +19,7 @@ public interface CheckInRepository extends JpaRepository<CheckIn, UUID> {
     @Query("""
         SELECT c.clientId AS clientId, MAX(c.checkInDate) AS lastDate
         FROM CheckIn c
-        WHERE c.coachId = :coachId
+        WHERE c.coachId = :coachId AND c.deletedAt IS NULL
         GROUP BY c.clientId
         """)
     List<LastCheckIn> findLastCheckInPerClient(@Param("coachId") UUID coachId);
@@ -31,19 +31,21 @@ public interface CheckInRepository extends JpaRepository<CheckIn, UUID> {
     }
 
     /** All check-ins a coach received on a given date — dashboard "today" panel. */
-    List<CheckIn> findByCoachIdAndCheckInDate(UUID coachId, LocalDate checkInDate);
+    List<CheckIn> findByCoachIdAndCheckInDateAndDeletedAtIsNull(UUID coachId, LocalDate checkInDate);
 
     /** Newest check-ins across all clients — dashboard activity feed. */
-    List<CheckIn> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
+    List<CheckIn> findTop15ByCoachIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID coachId);
 
     /** Newest check-ins for one client — the client-detail Updates feed. */
-    List<CheckIn> findTop15ByCoachIdAndClientIdOrderByCreatedAtDesc(UUID coachId, UUID clientId);
+    List<CheckIn> findTop15ByCoachIdAndClientIdAndDeletedAtIsNullOrderByCreatedAtDesc(UUID coachId, UUID clientId);
 
-    List<CheckIn> findByClientIdAndCoachIdOrderByCheckInDateDesc(UUID clientId, UUID coachId);
+    List<CheckIn> findByClientIdAndCoachIdAndDeletedAtIsNullOrderByCheckInDateDesc(UUID clientId, UUID coachId);
+
+    Optional<CheckIn> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
 
     Optional<CheckIn> findByClientIdAndCoachIdAndCheckInDate(UUID clientId, UUID coachId, LocalDate checkInDate);
 
-    boolean existsByClientIdAndCoachIdAndCheckInDate(UUID clientId, UUID coachId, LocalDate checkInDate);
+    boolean existsByClientIdAndCoachIdAndCheckInDateAndDeletedAtIsNull(UUID clientId, UUID coachId, LocalDate checkInDate);
 
-    boolean existsByClientIdAndCheckInDateAfter(UUID clientId, LocalDate date);
+    boolean existsByClientIdAndCheckInDateAfterAndDeletedAtIsNull(UUID clientId, LocalDate date);
 }
