@@ -34,6 +34,9 @@ public class CheckIn extends BaseEntity {
     @Column(name = "client_notes", columnDefinition = "text")
     private String clientNotes;
 
+    @Column(name = "deleted_at")
+    private java.time.Instant deletedAt;
+
     @Column(name = "coach_notes", columnDefinition = "text")
     private String coachNotes;
 }

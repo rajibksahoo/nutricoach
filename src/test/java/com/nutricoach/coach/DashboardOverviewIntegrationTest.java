@@ -82,7 +82,7 @@ class DashboardOverviewIntegrationTest extends AbstractIntegrationTest {
                 progressLogRepository.deleteAll(
                         progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId()));
                 checkInRepository.deleteAll(
-                        checkInRepository.findByClientIdAndCoachIdOrderByCheckInDateDesc(c.getId(), existing.getId()));
+                        checkInRepository.findByClientIdAndCoachIdAndDeletedAtIsNullOrderByCheckInDateDesc(c.getId(), existing.getId()));
                 messageRepository.deleteAll(
                         messageRepository.findByCoachIdAndClientIdOrderByCreatedAtAsc(existing.getId(), c.getId()));
                 mealPlanRepository.findByClientIdAndCoachIdAndDeletedAtIsNull(c.getId(), existing.getId())

@@ -119,7 +119,7 @@ public class ClientDetailService {
                     who + ": " + truncate(m.getContent()), m.getCreatedAt()));
         }
 
-        for (CheckIn ci : checkInRepository.findTop15ByCoachIdAndClientIdOrderByCreatedAtDesc(coachId, clientId)) {
+        for (CheckIn ci : checkInRepository.findTop15ByCoachIdAndClientIdAndDeletedAtIsNullOrderByCreatedAtDesc(coachId, clientId)) {
             items.add(new ClientActivityResponse("CHECK_IN", clientId,
                     ci.getAdherencePercent() != null
                             ? "Checked in — " + ci.getAdherencePercent() + "% adherence"

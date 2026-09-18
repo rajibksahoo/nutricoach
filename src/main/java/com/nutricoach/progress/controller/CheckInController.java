@@ -4,6 +4,7 @@ import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
 import com.nutricoach.progress.dto.CheckInResponse;
 import com.nutricoach.progress.dto.CreateCheckInRequest;
+import com.nutricoach.progress.dto.UpdateCheckInRequest;
 import com.nutricoach.progress.service.CheckInService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -44,5 +45,27 @@ public class CheckInController {
     public ResponseEntity<ApiResponse<List<CheckInResponse>>> getHistory(@PathVariable UUID clientId) {
         UUID coachId = securityUtils.getCurrentCoachId();
         return ResponseEntity.ok(ApiResponse.ok(checkInService.getHistory(clientId, coachId)));
+    }
+
+    @PutMapping("/{checkInId}")
+    @Operation(summary = "Edit a check-in",
+            description = "Partial update. Use coachNotes to reply to a check-in the client submitted — it could previously only be set at creation.")
+    public ResponseEntity<ApiResponse<CheckInResponse>> update(
+            @PathVariable UUID clientId,
+            @PathVariable UUID checkInId,
+            @Valid @RequestBody UpdateCheckInRequest request) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok("Check-in updated",
+                checkInService.update(clientId, checkInId, coachId, request)));
+    }
+
+    @DeleteMapping("/{checkInId}")
+    @Operation(summary = "Remove a check-in", description = "Soft delete; it disappears from history, the activity feed and the overdue calculation")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable UUID clientId,
+            @PathVariable UUID checkInId) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        checkInService.delete(clientId, checkInId, coachId);
+        return ResponseEntity.ok(ApiResponse.ok("Check-in removed", null));
     }
 }

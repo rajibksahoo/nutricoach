@@ -54,7 +54,7 @@ class PortalProgressWriteIntegrationTest extends AbstractIntegrationTest {
         coachRepository.findByPhone("9600000101").ifPresent(existing -> {
             clientRepository.findAllByCoachId(existing.getId()).forEach(c -> {
                 checkInRepository.deleteAll(
-                        checkInRepository.findByClientIdAndCoachIdOrderByCheckInDateDesc(c.getId(), existing.getId()));
+                        checkInRepository.findByClientIdAndCoachIdAndDeletedAtIsNullOrderByCheckInDateDesc(c.getId(), existing.getId()));
                 progressLogRepository.deleteAll(
                         progressLogRepository.findByClientIdAndCoachIdOrderByLoggedDateDesc(c.getId(), existing.getId()));
                 mealPlanRepository.findByClientIdAndCoachIdAndDeletedAtIsNull(c.getId(), existing.getId())
@@ -115,7 +115,7 @@ class PortalProgressWriteIntegrationTest extends AbstractIntegrationTest {
 
         // The persisted row is scoped to the token's coachId/clientId — not any body value.
         List<CheckIn> rows =
-                checkInRepository.findByClientIdAndCoachIdOrderByCheckInDateDesc(client.getId(), coach.getId());
+                checkInRepository.findByClientIdAndCoachIdAndDeletedAtIsNullOrderByCheckInDateDesc(client.getId(), coach.getId());
         assertThat(rows).hasSize(1);
         assertThat(rows.get(0).getCoachId()).isEqualTo(coach.getId());
         assertThat(rows.get(0).getClientId()).isEqualTo(client.getId());
