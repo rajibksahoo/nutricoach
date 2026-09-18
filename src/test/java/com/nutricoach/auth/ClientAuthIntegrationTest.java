@@ -130,15 +130,20 @@ class ClientAuthIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
+    /**
+     * coachId used to be required, which meant a client could only sign in
+     * through a link carrying it. A phone identifies exactly one coach
+     * (changeset 028), so it is now optional and resolved server-side.
+     */
     @Test
-    void verifyOtp_missingCoachId_returns400() throws Exception {
+    void verifyOtp_missingCoachId_resolvesTheCoachFromThePhone() throws Exception {
         mockMvc.perform(post("/api/v1/client-auth/otp/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "phone", CLIENT_PHONE,
                                 "otp", "111111"))))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.coachId").value(coach.getId().toString()));
     }
 
     // ── Token role isolation ──────────────────────────────────────────────────

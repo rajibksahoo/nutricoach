@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- One phone, one coach &amp; enforced by the database.                   -->
+    <!--                                                                    -->
+    <!-- ClientService.create already rejects a phone another coach holds,  -->
+    <!-- but only in application code, and the table constraint was         -->
+    <!-- UNIQUE (coach_id, phone) &amp; per coach. Two concurrent creates both   -->
+    <!-- pass the check and both insert, so the rule the product states was -->
+    <!-- never actually guaranteed.                                         -->
+    <!--                                                                    -->
+    <!-- That matters beyond tidiness: the client portal now resolves a     -->
+    <!-- client's coach from their phone alone, which is only sound if the  -->
+    <!-- mapping is unique.                                                 -->
+    <!--                                                                    -->
+    <!-- BEFORE APPLYING TO PRODUCTION, run:                                -->
+    <!--                                                                    -->
+    <!--   SELECT phone, count(*) FROM clients WHERE deleted_at IS NULL     -->
+    <!--   GROUP BY phone HAVING count(*) &gt; 1;                              -->
+    <!--                                                                    -->
+    <!-- Any rows returned must be resolved by hand &amp; decide which coach    -->
+    <!-- keeps the client &amp; or this changeset fails and the app will not     -->
+    <!-- start. It is deliberately not automated: silently soft-deleting    -->
+    <!-- somebody's client is not a migration's decision to make.           -->
+    <!-- ================================================================= -->
+
+    <changeSet id="028-client-phone-global-unique" author="nutricoach">
+        <preConditions onFail="HALT" onFailMessage="clients has phones held by more than one coach; resolve them before applying 028 (see the comment in this file)">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM (
+                    SELECT phone FROM clients WHERE deleted_at IS NULL
+                    GROUP BY phone HAVING count(*) &gt; 1
+                ) duplicates
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Partial: a soft-deleted client must not block the phone being
+             re-registered, including under a different coach. -->
+        <sql>
+            CREATE UNIQUE INDEX uq_clients_phone_active
+                ON clients (phone)
+                WHERE deleted_at IS NULL;
+        </sql>
+
+        <rollback>
+            <sql>DROP INDEX IF EXISTS uq_clients_phone_active;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- A coach can now send a client their portal link over WhatsApp, so  -->
+    <!-- notification_logs.type needs a value for it.                       -->
+    <!--                                                                    -->
+    <!-- The constraint is named chk_notif_logs_type, set in changeset 011  -->
+    <!-- &amp; not the default notification_logs_type_check that Postgres would  -->
+    <!-- have generated. Dropping the wrong name with IF EXISTS silently    -->
+    <!-- succeeds and leaves the real constraint in place, so the name is   -->
+    <!-- spelled out here rather than guessed.                              -->
+    <!-- ================================================================= -->
+
+    <changeSet id="029-notification-type-portal-invite" author="nutricoach">
+        <sql>
+            ALTER TABLE notification_logs DROP CONSTRAINT IF EXISTS chk_notif_logs_type;
+            ALTER TABLE notification_logs ADD CONSTRAINT chk_notif_logs_type
+                CHECK (type IN ('OTP', 'MEAL_PLAN_SHARE', 'CHECK_IN_REMINDER',
+                                'PROGRESS_UPDATE', 'BILLING_ALERT', 'PORTAL_INVITE'));
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE notification_logs DROP CONSTRAINT IF EXISTS chk_notif_logs_type;
+                ALTER TABLE notification_logs ADD CONSTRAINT chk_notif_logs_type
+                    CHECK (type IN ('OTP', 'MEAL_PLAN_SHARE', 'CHECK_IN_REMINDER',
+                                    'PROGRESS_UPDATE', 'BILLING_ALERT'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
