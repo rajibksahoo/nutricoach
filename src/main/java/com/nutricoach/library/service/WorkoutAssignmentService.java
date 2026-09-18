@@ -13,7 +13,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,7 +72,7 @@ public class WorkoutAssignmentService {
 
     @Transactional
     public ScheduleResponse schedule(UUID workoutId, UUID coachId, ScheduleWorkoutRequest req) {
-        requireWorkout(workoutId, coachId);
+        Workout workout = requireWorkout(workoutId, coachId);
         requireClient(req.clientId(), coachId);
         ClientWorkoutSchedule saved = scheduleRepository.save(ClientWorkoutSchedule.builder()
                 .coachId(coachId)
@@ -79,7 +81,7 @@ public class WorkoutAssignmentService {
                 .scheduledDate(req.date())
                 .notes(req.notes())
                 .build());
-        return toScheduleResponse(saved);
+        return toScheduleResponse(saved, workout.getName());
     }
 
     @Transactional
@@ -96,11 +98,18 @@ public class WorkoutAssignmentService {
         List<ClientWorkoutSchedule> schedules = (from != null && to != null)
                 ? scheduleRepository.findByCoachIdAndClientIdAndScheduledDateBetweenAndDeletedAtIsNullOrderByScheduledDateAsc(coachId, clientId, from, to)
                 : scheduleRepository.findByCoachIdAndClientIdAndDeletedAtIsNullOrderByScheduledDateAsc(coachId, clientId);
-        return schedules.stream().map(this::toScheduleResponse).toList();
+        Map<UUID, String> names = workoutRepository
+                .findAllById(schedules.stream().map(ClientWorkoutSchedule::getWorkoutId).distinct().toList())
+                .stream()
+                .filter(w -> w.getCoachId().equals(coachId))
+                .collect(Collectors.toMap(Workout::getId, Workout::getName));
+        return schedules.stream()
+                .map(s -> toScheduleResponse(s, names.get(s.getWorkoutId())))
+                .toList();
     }
 
-    private void requireWorkout(UUID workoutId, UUID coachId) {
-        workoutRepository.findByIdAndCoachIdAndDeletedAtIsNull(workoutId, coachId)
+    private Workout requireWorkout(UUID workoutId, UUID coachId) {
+        return workoutRepository.findByIdAndCoachIdAndDeletedAtIsNull(workoutId, coachId)
                 .orElseThrow(() -> NutriCoachException.notFound("Workout not found"));
     }
 
@@ -113,7 +122,8 @@ public class WorkoutAssignmentService {
         return new AssignmentResponse(a.getId(), a.getClientId(), a.getWorkoutId(), a.getAssignedAt(), a.getNotes());
     }
 
-    private ScheduleResponse toScheduleResponse(ClientWorkoutSchedule s) {
-        return new ScheduleResponse(s.getId(), s.getClientId(), s.getWorkoutId(), s.getScheduledDate(), s.getNotes());
+    private ScheduleResponse toScheduleResponse(ClientWorkoutSchedule s, String workoutName) {
+        return new ScheduleResponse(s.getId(), s.getClientId(), s.getWorkoutId(), workoutName,
+                s.getScheduledDate(), s.getNotes());
     }
 }
