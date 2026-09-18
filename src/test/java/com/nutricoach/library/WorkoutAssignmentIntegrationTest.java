@@ -204,7 +204,9 @@ class WorkoutAssignmentIntegrationTest extends AbstractIntegrationTest {
                         .param("from", "2026-05-01").param("to", "2026-05-31")
                         .header("Authorization", "Bearer " + jwt))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                .andExpect(jsonPath("$.data.length()").value(2))
+                // The name comes from the server so the UI needs no id-to-label lookup.
+                .andExpect(jsonPath("$.data[0].workoutName").value("Test Workout"));
     }
 
     @Test
