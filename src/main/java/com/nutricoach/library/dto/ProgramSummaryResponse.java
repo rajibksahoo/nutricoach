@@ -22,6 +22,7 @@ public record ProgramSummaryResponse(
         String experienceLevel,
         List<String> tags,
         List<String> equipment,
+        boolean isTemplate,
         String coverImageUrl,
         String coverGradient,
         Instant createdAt,

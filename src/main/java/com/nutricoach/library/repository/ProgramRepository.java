@@ -11,5 +11,8 @@ public interface ProgramRepository extends JpaRepository<Program, UUID> {
 
     List<Program> findByCoachIdAndDeletedAtIsNullOrderByNameAsc(UUID coachId);
 
+    /** Split the library from the templates picker — see the is_template flag. */
+    List<Program> findByCoachIdAndIsTemplateAndDeletedAtIsNullOrderByNameAsc(UUID coachId, boolean isTemplate);
+
     Optional<Program> findByIdAndCoachIdAndDeletedAtIsNull(UUID id, UUID coachId);
 }
