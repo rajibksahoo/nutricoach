@@ -54,6 +54,9 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
     /** Newest messages across all of a coach's conversations — dashboard activity feed. */
     List<Message> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
 
+    /** Newest messages for one client — the client-detail Updates feed. */
+    List<Message> findTop15ByCoachIdAndClientIdOrderByCreatedAtDesc(UUID coachId, UUID clientId);
+
     /** Count unread messages (sent by client, not yet read) for a conversation. */
     @Query("""
         SELECT COUNT(m) FROM Message m
