@@ -19,8 +19,13 @@ public class MealItem extends BaseEntity {
     @Column(name = "meal_id", nullable = false)
     private UUID mealId;
 
-    @Column(name = "food_item_id", nullable = false)
+    /** Null when the item names a food outside the curated food_items set. */
+    @Column(name = "food_item_id")
     private UUID foodItemId;
+
+    /** Set only when {@link #foodItemId} is null; the macros here are the item's own. */
+    @Column(name = "custom_name", length = 200)
+    private String customName;
 
     @Column(name = "quantity_grams", nullable = false, precision = 7, scale = 2)
     private BigDecimal quantityGrams;

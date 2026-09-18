@@ -7,6 +7,8 @@ public record MealItemResponse(
         UUID id,
         UUID foodItemId,
         String foodItemName,
+        /** True when the item names its own food rather than a curated one. */
+        boolean custom,
         BigDecimal quantityGrams,
         String quantityUnit,
         Integer calories,

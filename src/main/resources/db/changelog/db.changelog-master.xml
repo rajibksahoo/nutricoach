@@ -63,4 +63,7 @@
     <!-- Coach-authored notes on a client -->
     <include file="db/changelog/changes/026-create-client-notes.xml"/>
 
+    <!-- Meal items may name a food outside the curated food_items set -->
+    <include file="db/changelog/changes/027-meal-item-custom-food.xml"/>
+
 </databaseChangeLog>

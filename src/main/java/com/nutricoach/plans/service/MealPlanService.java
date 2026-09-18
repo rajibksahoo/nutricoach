@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -234,7 +235,12 @@ public class MealPlanService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private void recalculateDayTotals(UUID dayId) {
+    /**
+     * Public because {@code AiMealPlanService} writes a whole generated plan's
+     * rows directly and must refresh the denormalised day totals afterwards.
+     * Duplicating this sum there would let the two drift.
+     */
+    public void recalculateDayTotals(UUID dayId) {
         List<MealItem> allItems = mealItemRepository.findByDayId(dayId);
 
         int totalCals = allItems.stream().mapToInt(i -> i.getCalories() != null ? i.getCalories() : 0).sum();
@@ -258,7 +264,8 @@ public class MealPlanService {
         List<MealItem> allItems = mealItemRepository.findByDayId(day.getId());
         Map<UUID, List<MealItem>> itemsByMealId = allItems.stream()
                 .collect(Collectors.groupingBy(MealItem::getMealId));
-        List<UUID> foodIds = allItems.stream().map(MealItem::getFoodItemId).distinct().toList();
+        List<UUID> foodIds = allItems.stream().map(MealItem::getFoodItemId)
+                .filter(Objects::nonNull).distinct().toList();
         Map<UUID, String> foodNames = foodItemRepository.findAllById(foodIds).stream()
                 .collect(Collectors.toMap(FoodItem::getId, FoodItem::getName));
 
@@ -291,8 +298,14 @@ public class MealPlanService {
                 meal.getTimeOfDay(), meal.getSequenceOrder(), itemResponses);
     }
 
-    private MealItemResponse toItemResponse(MealItem item, String foodItemName) {
-        return new MealItemResponse(item.getId(), item.getFoodItemId(), foodItemName,
+    /**
+     * @param curatedName the food_items name, ignored when the item names its own
+     *                    food (in which case {@code customName} is authoritative)
+     */
+    private MealItemResponse toItemResponse(MealItem item, String curatedName) {
+        boolean custom = item.getFoodItemId() == null;
+        String name = custom ? item.getCustomName() : curatedName;
+        return new MealItemResponse(item.getId(), item.getFoodItemId(), name, custom,
                 item.getQuantityGrams(), item.getQuantityUnit(),
                 item.getCalories(), item.getProteinG(), item.getCarbsG(), item.getFatG());
     }
