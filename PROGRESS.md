@@ -27,8 +27,9 @@
 | Programs list Tags + Equipment columns (P3) | ✅ Done — tags input + derived equipment (be/web `feat/program-equipment-tags`) |
 | Progress-photos grid (client Overview) | ✅ Done — real thumbnails + View All (be/web `feat/client-progress-photos`); **real image rendering is unverified until prod** |
 | Program templates + planner notes + list filters (P5) | ✅ Done — coach-owned templates, not a curated catalogue (be/web `feat/program-templates`) |
+| Client-detail cards: Training, Notes, Updates, Limitations | ✅ Done — (be/web `feat/client-detail-data`); only **Package / pkgEnd** is left unwired |
 
-**The design-match queue is complete**, the Programs screen has shipped, **P1/P2/P4 are done**, the **Dashboard has been rebuilt as a daily action queue**, and the **revenue path (onboarding + legal pages + real Razorpay Checkout) has shipped**. Next work comes from the backlog below — recommended order: decide per-field on the remaining unwired Client slots (Notes, Updates feed, Training stats), then **P6** (prod-only verification). `Master Planner` stays blocked on a product decision. **Before going live:** fill in the `REPLACE_ME` business details in `nutricoach-web/lib/legal.ts` and have the policy copy reviewed.
+**The design-match queue is complete**, the Programs screen has shipped, **P1/P2/P4 are done**, the **Dashboard has been rebuilt as a daily action queue**, and the **revenue path (onboarding + legal pages + real Razorpay Checkout) has shipped**. Next work comes from the backlog below. The design-match queue and the unwired-slot list are now clear except for two items that need **product decisions, not code**: `Master Planner` (undefined anywhere) and **Package / pkgEnd** (needs a per-client billing model — today subscriptions are coach-tier). The remaining engineering work is **P6, prod-only verification**, and filling in `nutricoach-web/lib/legal.ts` before taking a payment. **Before going live:** fill in the `REPLACE_ME` business details in `nutricoach-web/lib/legal.ts` and have the policy copy reviewed.
 
 - Revenue path (web `feat/billing-legal-onboarding`, frontend-only — `Coach` already had `businessName`/`gstin`) — the first run and the paying path. **Onboarding:** a skippable 3-step setup at `/onboarding` (identity → practice + GSTIN validation → first client); `auth/otp` now routes on the backend's `isNewCoach`, falling back to "no name set" so an interrupted first run resumes. **Legal:** `/terms`, `/privacy`, `/refund`, `/pricing`, `/contact` under a public `(legal)` group with a shared `LegalShell`, linked from the landing footer — Razorpay merchant onboarding and the DPDP Act both require these to be public and consistent. Every business detail lives in `lib/legal.ts` as an explicit `REPLACE_ME` placeholder (`rg REPLACE_ME lib/legal.ts`); **the copy is a draft and is not legal advice.** **Billing:** real in-page Razorpay Checkout via `lib/use-razorpay.ts` (the old flow used `window.open`, which was popup-blocker-prone and gave no success signal) plus `pollUntilActive` — the webhook, not the browser, is the source of truth for activation. One `lib/plans.ts` catalogue now feeds the landing page, `/pricing` and `/billing`, mirroring `SubscriptionGate.clientLimitFor`. Also hardened dev affordances: `IS_DEV_MODE` requires `NODE_ENV !== "production"` **and** the flag, so a stray env var can't ship an "OTP is 111111" banner to real users. 43/43 e2e, tsc + build clean.
   - **Note:** the new-coach redirect broke `auth.spec.ts`, which logs in with a fresh phone and expected `/dashboard`. The spec was the stale side; it now expects `/onboarding`.
@@ -53,6 +54,16 @@
   - **`Master Planner` is still a `coming soon` toast** — deliberately untouched, see the backlog note.
   - **MapStruct silently mapped `isTemplate` to false.** Lombok names the getter `isTemplate()`, so the bean property is `template` while the DTO component is `isTemplate` — no match, no warning, just `false` on every response. Fixed with an explicit `@Mapping(target = "isTemplate", source = "program.template")`. Watch for this on any other boolean DTO field.
   - **`uniquePhone()` in the e2e helpers was a bare millisecond timestamp**, so parallel workers could mint the same phone and race the unique-phone constraint — surfacing as an occasional `demo-login failed: 500` once the suite passed ~60 tests. Now timestamp + random suffix. 61/61 green across three consecutive runs.
+
+- Client-detail cards (be/web `feat/client-detail-data`) — four of the five unwired slots on the Clients screen, each a different shape.
+  - **Training stats** — real planned-vs-completed over 7 and 30 days, next week, and the last completion. This was blocked when the screen was designed and became cheap once completions, schedules and program assignments all landed. The date-range expansion was **extracted out of `PortalWorkoutService.listUpcoming`** into a shared `plannedBetween`, which is the same walk bounded to a range — so the coach's Training card and the client's own workout list can never disagree about what was planned.
+  - **Notes** — new `client_notes` table (changeset 026) + CRUD + inline add/edit/delete. A note is addressed through its client, so the service checks the note actually belongs to that client; otherwise one coach's note id could be edited under a different client of theirs.
+  - **Updates feed** — **derived at read time, no `activity_log` table.** Unions messages, check-ins, progress logs, workout completions and the join event. The alternative (a table written from every mutation path) touches five modules and is easy to leave half-wired; this costs a handful of small indexed reads per view and cannot drift from the truth. Filter menu is wired to the types the feed can actually contain.
+  - **Limitations** — **a fix, not a feature.** The design shows a date per entry, but `health_conditions` is a plain `string[]`, so the UI filled in the *client's join date*. A coach reading "Shoulder impingement · 12 Mar" would think that was when it was recorded. The date is simply gone now; promoting to a dated table stays available if it ever matters.
+  - Also removed the **`Check Result`** button on the Training card — never wired, and a dead button beside real numbers reads worse than no button.
+  - **`Logged weight 72.50 kg`** — `weight_kg` is `numeric(5,2)`, so both this feed and the dashboard's rendered the trailing zero. Now formatted through `common/util/Measures.formatKg`; fixing only the new feed would have made two views disagree about the same event.
+  - **Self-inflicted:** inserting the new method above `listUpcoming` stranded its `@Transactional`, giving one method two and the other none. Lombok then stopped processing and ~40 errors appeared in unrelated files (`BillingService` "cannot find symbol: log"). When Lombok symbols vanish en masse, look for an annotation error, not a real break.
+- 313 backend tests green (13 new); 66/66 e2e (6 new), tsc + build clean.
 
 ---
 
@@ -166,11 +177,11 @@ Messaging is **done**: `messaging/` module (entity/repo/service/mapper, `Message
 ### Other unwired Client fields
 The redesigned `/clients` screen has visual slots for several things the backend doesn't track yet. Decide per-field whether to build the backend or drop the slot:
 
-- **Notes** — coach-authored notes per client. Probably worth a `client_notes` table.
-- **Limitations / injuries** — currently piggybacks on `clients.health_conditions` (string list). Promote to its own table if we want dated entries (the design shows a date per entry).
-- **Progress photos** — see item 4 above (backend supports per-log photos; needs an all-photos-per-client endpoint).
-- **Updates feed** — generic activity log of "client did X / coach did Y" events. Needs an `activity_log` table or a derived view over existing tables.
-- **Training stats** (last 7 / 30 days, next week assigned, last workout) — depends on the workout-assignment story landing first.
+- ~~**Notes**~~ ✅ **Done** — `client_notes` table + CRUD + an editable card.
+- ~~**Limitations / injuries**~~ ✅ **Resolved as a fix, not a feature** — still `clients.health_conditions`, but the UI no longer invents a date. Revisit only if dated injury history is genuinely wanted.
+- ~~**Progress photos**~~ ✅ **Done** — all-photos-per-client endpoint + grid.
+- ~~**Updates feed**~~ ✅ **Done** — derived at read time, **no `activity_log` table**.
+- ~~**Training stats**~~ ✅ **Done** — the assignment story landed, so this became cheap.
 - **Package / pkgEnd** — billing-side fields. Tie into `subscriptions` once per-client packages exist (today subscriptions are coach-tier, not per-client).
 
 Until each is implemented, the design's empty-state placeholders ("No notes yet", "No photos uploaded yet", "Not tracked", etc.) carry the screen.
