@@ -6,6 +6,11 @@
 
 ---
 
+> **Before going live:** `GO-LIVE.md` lists everything that must change before
+> taking a real payment — business details, Razorpay live setup, environment
+> variables, the four things never verified outside local dev, and the unfinished
+> UI a paying coach would see.
+
 ## Quick Status (updated 2026-06-11 after full audit)
 
 | Area | Status |
