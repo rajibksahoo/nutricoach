@@ -59,8 +59,23 @@ public class ProgramService {
 
     @Transactional(readOnly = true)
     public List<ProgramSummaryResponse> list(UUID coachId) {
-        return programRepository.findByCoachIdAndDeletedAtIsNullOrderByNameAsc(coachId)
-                .stream().map(this::toSummary).toList();
+        List<Program> programs = programRepository.findByCoachIdAndDeletedAtIsNullOrderByNameAsc(coachId);
+        Map<UUID, List<String>> equipment = equipmentFor(programs.stream().map(Program::getId).toList());
+        return programs.stream()
+                .map(p -> toSummary(p, equipment.getOrDefault(p.getId(), List.of())))
+                .toList();
+    }
+
+    /**
+     * Distinct equipment per program, derived from the exercises in the workouts
+     * on each program's days. One query for every program passed in.
+     */
+    private Map<UUID, List<String>> equipmentFor(List<UUID> programIds) {
+        if (programIds.isEmpty()) return Map.of();
+        return programDayRepository.findEquipmentByProgramIds(programIds).stream()
+                .collect(Collectors.groupingBy(
+                        row -> (UUID) row[0],
+                        Collectors.mapping(row -> (String) row[1], Collectors.toList())));
     }
 
     @Transactional(readOnly = true)
@@ -177,7 +192,11 @@ public class ProgramService {
     }
 
     private ProgramSummaryResponse toSummary(Program p) {
-        return programMapper.toSummary(p, coverUrl(p));
+        return toSummary(p, equipmentFor(List.of(p.getId())).getOrDefault(p.getId(), List.of()));
+    }
+
+    private ProgramSummaryResponse toSummary(Program p, List<String> equipment) {
+        return programMapper.toSummary(p, coverUrl(p), equipment);
     }
 
     private String coverUrl(Program p) {
