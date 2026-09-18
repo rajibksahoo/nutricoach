@@ -30,6 +30,8 @@ import org.springframework.web.client.RestClient;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -303,12 +305,17 @@ public class AiMealPlanService {
      * indexed under its full name, its name minus any parenthetical, and each
      * "/"-separated alternative.
      *
-     * <p>First writer wins on a collision, which keeps the result stable rather
-     * than dependent on row order.
+     * <p>Aliases collide: "Poha" matches both "Poha (cooked)" at 130 kcal and
+     * "Poha (dry, flattened rice)" at 356 kcal. Iterating in name order and
+     * keeping the first writer makes the winner deterministic instead of
+     * dependent on row order, and happens to favour the cooked form, which is
+     * what a meal plan means. The coach can still correct the item.
      */
     private Map<String, FoodItem> buildFoodIndex() {
         Map<String, FoodItem> index = new HashMap<>();
-        for (FoodItem food : foodItemRepository.findAll()) {
+        List<FoodItem> foods = new ArrayList<>(foodItemRepository.findAll());
+        foods.sort(Comparator.comparing(FoodItem::getName, String.CASE_INSENSITIVE_ORDER));
+        for (FoodItem food : foods) {
             String full = food.getName().toLowerCase(Locale.ROOT).trim();
             index.putIfAbsent(full, food);
 

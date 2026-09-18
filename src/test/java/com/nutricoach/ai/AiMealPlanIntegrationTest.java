@@ -193,6 +193,23 @@ class AiMealPlanIntegrationTest extends AbstractIntegrationTest {
                 assertThat(i.getFoodItemId() == null).isEqualTo(i.getCustomName() != null));
     }
 
+    /**
+     * "Poha" is ambiguous: the curated list holds it cooked (130 kcal/100g) and
+     * dry (356). A meal plan means the cooked form, and the choice must not
+     * depend on row order.
+     */
+    @Test
+    void generate_resolvesAnAmbiguousAliasToTheCookedForm() throws Exception {
+        MealPlan plan = generate();
+
+        mockMvc.perform(get("/api/v1/meal-plans/{id}", plan.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.days[0].meals[0].items[0].foodItemName")
+                        .value("Poha (cooked)"))
+                .andExpect(jsonPath("$.data.days[0].meals[0].items[0].custom").value(false));
+    }
+
     @Test
     void generate_reportsCountsOnTheJob() {
         AiJob created = aiMealPlanService.createJob(coach.getId(), client.getId());
@@ -219,6 +236,22 @@ class AiMealPlanIntegrationTest extends AbstractIntegrationTest {
                         .value(org.hamcrest.Matchers.hasItem("Grilled Tofu Steak")))
                 .andExpect(jsonPath("$.data.days[0].meals[*].items[?(@.custom == true)]")
                         .value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.empty())));
+    }
+
+    /** The counts reach the coach, not just the database. */
+    @Test
+    void getJob_exposesTheGenerationCounts() throws Exception {
+        AiJob created = aiMealPlanService.createJob(coach.getId(), client.getId());
+        aiMealPlanService.processJob(created.getId());
+        awaitJob(created.getId());
+
+        mockMvc.perform(get("/api/v1/ai/jobs/{id}", created.getId())
+                        .header("Authorization", "Bearer " + jwt))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.dayCount").value(3))
+                .andExpect(jsonPath("$.data.itemCount").value(13))
+                .andExpect(jsonPath("$.data.unmatchedCount").isNumber());
     }
 
     @Test

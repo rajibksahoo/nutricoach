@@ -12,5 +12,11 @@ public record AiJobResponse(
         Instant createdAt,
         Instant completedAt,
         String errorMessage,
-        UUID generatedMealPlanId
+        UUID generatedMealPlanId,
+        /** What the generation actually produced; null until the job completes. */
+        Integer dayCount,
+        Integer mealCount,
+        Integer itemCount,
+        /** Items naming a food outside the curated list, so their macros need a look. */
+        Integer unmatchedCount
 ) {}

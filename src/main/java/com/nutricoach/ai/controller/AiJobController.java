@@ -58,6 +58,13 @@ public class AiJobController {
 
     // ─── Mapping ──────────────────────────────────────────────────────────────
 
+    /** Reads a count the generator recorded on the job, absent until it completes. */
+    private static Integer count(AiJob job, String key) {
+        if (job.getOutputPayload() == null) return null;
+        Object raw = job.getOutputPayload().get(key);
+        return raw instanceof Number n ? n.intValue() : null;
+    }
+
     private static AiJobResponse toResponse(AiJob job) {
         UUID generatedMealPlanId = null;
         if (job.getStatus() == AiJob.Status.COMPLETED && job.getOutputPayload() != null) {
@@ -74,7 +81,11 @@ public class AiJobController {
                 job.getCreatedAt(),
                 job.getCompletedAt(),
                 job.getErrorMessage(),
-                generatedMealPlanId
+                generatedMealPlanId,
+                count(job, "dayCount"),
+                count(job, "mealCount"),
+                count(job, "itemCount"),
+                count(job, "unmatchedCount")
         );
     }
 }
