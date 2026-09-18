@@ -9,7 +9,9 @@ import com.nutricoach.client.repository.ClientRepository;
 import com.nutricoach.coach.entity.Coach;
 import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
+import com.nutricoach.plans.repository.MealItemRepository;
 import com.nutricoach.plans.repository.MealPlanDayRepository;
+import com.nutricoach.plans.repository.MealRepository;
 import com.nutricoach.plans.repository.MealPlanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,8 @@ class AiJobIntegrationTest extends AbstractIntegrationTest {
     @Autowired AiJobRepository aiJobRepository;
     @Autowired MealPlanRepository mealPlanRepository;
     @Autowired MealPlanDayRepository mealPlanDayRepository;
+    @Autowired MealRepository mealRepository;
+    @Autowired MealItemRepository mealItemRepository;
     @Autowired JwtService jwtService;
 
     private String jwt;
@@ -53,8 +57,18 @@ class AiJobIntegrationTest extends AbstractIntegrationTest {
                     mealPlanRepository.findAll().stream()
                             .filter(p -> p.getCoachId().equals(existing.getId()) && p.getClientId().equals(c.getId()))
                             .forEach(plan -> {
-                                mealPlanDayRepository.deleteAll(
-                                        mealPlanDayRepository.findByMealPlanIdOrderByDayNumber(plan.getId()));
+                                // AI plans now carry real days/meals/items, so the
+                                // children have to go first or fk_meals_mpday blocks
+                                // the day delete.
+                                mealPlanDayRepository.findByMealPlanIdOrderByDayNumber(plan.getId())
+                                        .forEach(day -> {
+                                            mealRepository.findByMealPlanDayIdOrderBySequenceOrder(day.getId())
+                                                    .forEach(meal -> mealItemRepository.deleteAll(
+                                                            mealItemRepository.findByMealId(meal.getId())));
+                                            mealRepository.deleteAll(mealRepository
+                                                    .findByMealPlanDayIdOrderBySequenceOrder(day.getId()));
+                                            mealPlanDayRepository.delete(day);
+                                        });
                                 mealPlanRepository.delete(plan);
                             }));
             aiJobRepository.findByCoachIdOrderByCreatedAtDesc(existing.getId())

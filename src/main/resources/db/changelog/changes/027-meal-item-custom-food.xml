@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Let a meal item name its own food.                                 -->
+    <!--                                                                    -->
+    <!-- Until now every item had to point at a row in food_items, which    -->
+    <!-- holds 94 curated Indian foods. AI-generated plans routinely name   -->
+    <!-- foods outside that set, and a coach typing a plan by hand hits the -->
+    <!-- same wall.                                                         -->
+    <!--                                                                    -->
+    <!-- Macros are already denormalised onto meal_items and                -->
+    <!-- recalculateDayTotals sums those columns, so an item carrying its   -->
+    <!-- own macros needs no change to the totals maths. Exactly one of     -->
+    <!-- food_item_id / custom_name is expected to be set.                  -->
+    <!-- ================================================================= -->
+
+    <changeSet id="027-meal-item-custom-food" author="nutricoach">
+        <dropNotNullConstraint tableName="meal_items"
+                               columnName="food_item_id"
+                               columnDataType="uuid"/>
+
+        <addColumn tableName="meal_items">
+            <column name="custom_name" type="varchar(200)"/>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="meal_items" columnName="custom_name"/>
+            <addNotNullConstraint tableName="meal_items"
+                                  columnName="food_item_id"
+                                  columnDataType="uuid"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

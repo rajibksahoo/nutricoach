@@ -10,7 +10,15 @@ import com.nutricoach.client.repository.ClientRepository;
 import com.nutricoach.common.config.OpenAiProperties;
 import com.nutricoach.common.exception.NutriCoachException;
 import com.nutricoach.plans.entity.MealPlan;
+import com.nutricoach.plans.entity.Meal;
+import com.nutricoach.plans.entity.MealItem;
+import com.nutricoach.plans.entity.MealPlanDay;
+import com.nutricoach.plans.repository.FoodItemRepository;
+import com.nutricoach.plans.repository.MealItemRepository;
+import com.nutricoach.plans.repository.MealPlanDayRepository;
 import com.nutricoach.plans.repository.MealPlanRepository;
+import com.nutricoach.plans.repository.MealRepository;
+import com.nutricoach.plans.service.MealPlanService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +45,21 @@ class AiMealPlanServiceTest {
 
     @Mock
     private MealPlanRepository mealPlanRepository;
+
+    @Mock
+    private MealPlanDayRepository dayRepository;
+
+    @Mock
+    private MealRepository mealRepository;
+
+    @Mock
+    private MealItemRepository mealItemRepository;
+
+    @Mock
+    private FoodItemRepository foodItemRepository;
+
+    @Mock
+    private MealPlanService mealPlanService;
 
     @Mock
     private OpenAiProperties openAiProperties;
@@ -135,6 +158,21 @@ class AiMealPlanServiceTest {
         MealPlan savedPlan = MealPlan.builder().build();
         setId(savedPlan, UUID.randomUUID());
         when(mealPlanRepository.save(any(MealPlan.class))).thenReturn(savedPlan);
+
+        // The stub response is now persisted as real days/meals/items, so those
+        // saves must return entities carrying ids.
+        when(foodItemRepository.findAll()).thenReturn(java.util.List.of());
+        when(dayRepository.save(any(MealPlanDay.class))).thenAnswer(inv -> {
+            MealPlanDay d = inv.getArgument(0);
+            setId(d, UUID.randomUUID());
+            return d;
+        });
+        when(mealRepository.save(any(Meal.class))).thenAnswer(inv -> {
+            Meal m = inv.getArgument(0);
+            setId(m, UUID.randomUUID());
+            return m;
+        });
+        when(mealItemRepository.save(any(MealItem.class))).thenAnswer(inv -> inv.getArgument(0));
         
         aiMealPlanService.processJob(jobId);
         
