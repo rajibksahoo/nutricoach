@@ -2,6 +2,7 @@ package com.nutricoach.progress.controller;
 
 import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
+import com.nutricoach.progress.dto.ClientPhotoResponse;
 import com.nutricoach.progress.dto.LogProgressRequest;
 import com.nutricoach.progress.dto.ProgressLogResponse;
 import com.nutricoach.progress.service.ProgressService;
@@ -44,6 +45,14 @@ public class ProgressController {
     public ResponseEntity<ApiResponse<List<ProgressLogResponse>>> getHistory(@PathVariable UUID clientId) {
         UUID coachId = securityUtils.getCurrentCoachId();
         return ResponseEntity.ok(ApiResponse.ok(progressService.getHistory(clientId, coachId)));
+    }
+
+    @GetMapping("/photos")
+    @Operation(summary = "Get every progress photo for a client",
+            description = "All photos across the client's progress logs, newest log first, each with a pre-signed download URL (valid 60 min)")
+    public ResponseEntity<ApiResponse<List<ClientPhotoResponse>>> getPhotos(@PathVariable UUID clientId) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok(progressService.getPhotos(clientId, coachId)));
     }
 
     @GetMapping("/chart")
