@@ -39,10 +39,34 @@ public class ProgramController {
     }
 
     @GetMapping
-    @Operation(summary = "List all programs for the current coach")
-    public ResponseEntity<ApiResponse<List<ProgramSummaryResponse>>> list() {
+    @Operation(summary = "List programs for the current coach",
+            description = "templates=false (default) lists real programs, templates=true lists reusable templates; omit for both")
+    public ResponseEntity<ApiResponse<List<ProgramSummaryResponse>>> list(
+            @RequestParam(required = false) Boolean templates) {
         UUID coachId = securityUtils.getCurrentCoachId();
-        return ResponseEntity.ok(ApiResponse.ok(programService.list(coachId)));
+        return ResponseEntity.ok(ApiResponse.ok(programService.list(coachId, templates)));
+    }
+
+    @PostMapping("/{id}/instantiate")
+    @Operation(summary = "Start a new program from an existing one",
+            description = "Deep-copies the program and its days. The copy is never itself a template.")
+    public ResponseEntity<ApiResponse<ProgramSummaryResponse>> instantiate(
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) InstantiateProgramRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        String name = req == null ? null : req.name();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok("Program created from template", programService.instantiate(id, coachId, name)));
+    }
+
+    @PutMapping("/{id}/template")
+    @Operation(summary = "Mark a program as a reusable template, or demote it")
+    public ResponseEntity<ApiResponse<ProgramSummaryResponse>> setTemplate(
+            @PathVariable UUID id,
+            @Valid @RequestBody SetProgramTemplateRequest req) {
+        UUID coachId = securityUtils.getCurrentCoachId();
+        return ResponseEntity.ok(ApiResponse.ok(
+                programService.setTemplate(id, coachId, req.isTemplate())));
     }
 
     @GetMapping("/{id}")

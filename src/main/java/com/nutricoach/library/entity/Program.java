@@ -50,6 +50,11 @@ public class Program extends BaseEntity {
     @Column(name = "cover_gradient", length = 120)
     private String coverGradient;
 
+    /** A template is a reusable blueprint the coach starts new programs from. */
+    @Column(name = "is_template", nullable = false)
+    @Builder.Default
+    private boolean isTemplate = false;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 }

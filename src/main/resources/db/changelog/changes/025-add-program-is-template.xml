@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Coach-owned program templates.                                     -->
+    <!--                                                                    -->
+    <!-- A template is an ordinary program flagged reusable, not a separate -->
+    <!-- table: it keeps one editing surface (the planner) and lets a coach -->
+    <!-- promote work they have already done. Contrast workout_templates,   -->
+    <!-- which is a global curated catalogue with no coach_id.              -->
+    <!-- ================================================================= -->
+
+    <changeSet id="025-add-program-is-template" author="nutricoach">
+        <addColumn tableName="programs">
+            <column name="is_template" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <!-- The templates picker lists one coach's templates; everything else
+             lists their non-templates. Both hit this index. -->
+        <createIndex tableName="programs" indexName="idx_programs_coach_is_template">
+            <column name="coach_id"/>
+            <column name="is_template"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex tableName="programs" indexName="idx_programs_coach_is_template"/>
+            <dropColumn tableName="programs" columnName="is_template"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -57,4 +57,7 @@
     <!-- Client-marked workout completions (portal) -->
     <include file="db/changelog/changes/024-create-client-workout-completions.xml"/>
 
+    <!-- Coach-owned program templates (is_template flag on programs) -->
+    <include file="db/changelog/changes/025-add-program-is-template.xml"/>
+
 </databaseChangeLog>

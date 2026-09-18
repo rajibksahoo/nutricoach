@@ -57,9 +57,16 @@ public class ProgramService {
         return toSummary(programRepository.save(p));
     }
 
+    /**
+     * The coach's programs. {@code templates} selects which side of the
+     * {@code is_template} flag to return: the library lists real programs, the
+     * templates picker lists blueprints. Null returns both.
+     */
     @Transactional(readOnly = true)
-    public List<ProgramSummaryResponse> list(UUID coachId) {
-        List<Program> programs = programRepository.findByCoachIdAndDeletedAtIsNullOrderByNameAsc(coachId);
+    public List<ProgramSummaryResponse> list(UUID coachId, Boolean templates) {
+        List<Program> programs = templates == null
+                ? programRepository.findByCoachIdAndDeletedAtIsNullOrderByNameAsc(coachId)
+                : programRepository.findByCoachIdAndIsTemplateAndDeletedAtIsNullOrderByNameAsc(coachId, templates);
         Map<UUID, List<String>> equipment = equipmentFor(programs.stream().map(Program::getId).toList());
         return programs.stream()
                 .map(p -> toSummary(p, equipment.getOrDefault(p.getId(), List.of())))
@@ -189,6 +196,56 @@ public class ProgramService {
             p.setCoverS3Key(null);
             programRepository.save(p);
         }
+    }
+
+    /** Mark a program as a reusable template, or demote it back to a program. */
+    @Transactional
+    public ProgramSummaryResponse setTemplate(UUID id, UUID coachId, boolean isTemplate) {
+        Program p = require(id, coachId);
+        p.setTemplate(isTemplate);
+        return toSummary(programRepository.save(p));
+    }
+
+    /**
+     * Start a new program from an existing one, copying its days.
+     *
+     * <p>Deep-copies the program row and every {@link ProgramDay}; the days
+     * point at the same workouts, which are library entities the coach already
+     * owns, so there is nothing to clone there. The copy is never itself a
+     * template — instantiating a template yields a working program.
+     */
+    @Transactional
+    public ProgramSummaryResponse instantiate(UUID id, UUID coachId, String name) {
+        Program source = require(id, coachId);
+
+        String copyName = (name != null && !name.isBlank())
+                ? name.trim()
+                : source.getName() + " (copy)";
+
+        Program copy = programRepository.save(Program.builder()
+                .coachId(coachId)
+                .name(copyName)
+                .description(source.getDescription())
+                .weeks(source.getWeeks())
+                .durationDays(source.getDurationDays())
+                .modality(source.getModality())
+                .experienceLevel(source.getExperienceLevel())
+                .tags(source.getTags() == null ? null : List.copyOf(source.getTags()))
+                .coverGradient(source.getCoverGradient())
+                .isTemplate(false)
+                .build());
+
+        List<ProgramDay> days = programDayRepository.findByProgramIdOrderByDayNumberAsc(id).stream()
+                .map(d -> ProgramDay.builder()
+                        .programId(copy.getId())
+                        .dayNumber(d.getDayNumber())
+                        .workoutId(d.getWorkoutId())
+                        .notes(d.getNotes())
+                        .build())
+                .toList();
+        programDayRepository.saveAll(days);
+
+        return toSummary(copy);
     }
 
     private ProgramSummaryResponse toSummary(Program p) {
