@@ -21,4 +21,7 @@ public interface ProgressLogRepository extends JpaRepository<ProgressLog, UUID> 
 
     /** Newest logs across all clients — dashboard activity feed. */
     List<ProgressLog> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
+
+    /** Newest progress logs for one client — the client-detail Updates feed. */
+    List<ProgressLog> findTop15ByCoachIdAndClientIdOrderByCreatedAtDesc(UUID coachId, UUID clientId);
 }

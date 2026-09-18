@@ -36,6 +36,9 @@ public interface CheckInRepository extends JpaRepository<CheckIn, UUID> {
     /** Newest check-ins across all clients — dashboard activity feed. */
     List<CheckIn> findTop15ByCoachIdOrderByCreatedAtDesc(UUID coachId);
 
+    /** Newest check-ins for one client — the client-detail Updates feed. */
+    List<CheckIn> findTop15ByCoachIdAndClientIdOrderByCreatedAtDesc(UUID coachId, UUID clientId);
+
     List<CheckIn> findByClientIdAndCoachIdOrderByCheckInDateDesc(UUID clientId, UUID coachId);
 
     Optional<CheckIn> findByClientIdAndCoachIdAndCheckInDate(UUID clientId, UUID coachId, LocalDate checkInDate);

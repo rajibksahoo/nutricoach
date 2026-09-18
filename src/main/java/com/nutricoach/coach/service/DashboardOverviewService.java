@@ -3,6 +3,7 @@ package com.nutricoach.coach.service;
 import com.nutricoach.billing.service.SubscriptionGate;
 import com.nutricoach.client.entity.Client;
 import com.nutricoach.client.repository.ClientRepository;
+import com.nutricoach.common.util.Measures;
 import com.nutricoach.coach.dto.DashboardOverviewResponse;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.ActionItem;
 import com.nutricoach.coach.dto.DashboardOverviewResponse.ActivityItem;
@@ -315,7 +316,7 @@ public class DashboardOverviewService {
             Client c = clientsById.get(p.getClientId());
             if (c == null) continue;
             String summary = p.getWeightKg() != null
-                    ? "Logged weight " + p.getWeightKg() + " kg"
+                    ? "Logged weight " + Measures.formatKg(p.getWeightKg()) + " kg"
                     : "Logged progress";
             items.add(new ActivityItem("PROGRESS_LOG", c.getId(), c.getName(), summary, p.getCreatedAt()));
         }

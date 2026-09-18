@@ -60,4 +60,7 @@
     <!-- Coach-owned program templates (is_template flag on programs) -->
     <include file="db/changelog/changes/025-add-program-is-template.xml"/>
 
+    <!-- Coach-authored notes on a client -->
+    <include file="db/changelog/changes/026-create-client-notes.xml"/>
+
 </databaseChangeLog>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- Coach-authored notes on a client.                                  -->
+    <!--                                                                    -->
+    <!-- Free-form and dated, one row per note, newest first on the client  -->
+    <!-- detail card. Distinct from progress_logs.notes, which belongs to a -->
+    <!-- single dated measurement.                                          -->
+    <!-- ================================================================= -->
+
+    <changeSet id="026-create-client-notes" author="nutricoach">
+        <createTable tableName="client_notes">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="coach_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_client_notes_coach" references="coaches(id)"/>
+            </column>
+            <column name="client_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_client_notes_client" references="clients(id)"/>
+            </column>
+            <column name="body" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deleted_at" type="timestamptz"/>
+        </createTable>
+
+        <createIndex tableName="client_notes" indexName="idx_client_notes_coach_client">
+            <column name="coach_id"/>
+            <column name="client_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="client_notes"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

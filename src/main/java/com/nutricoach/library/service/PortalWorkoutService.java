@@ -7,10 +7,12 @@ import com.nutricoach.library.dto.WorkoutResponse;
 import com.nutricoach.common.exception.NutriCoachException;
 import com.nutricoach.library.entity.ClientProgramAssignment;
 import com.nutricoach.library.entity.ClientWorkoutCompletion;
+import com.nutricoach.library.entity.ClientWorkoutSchedule;
 import com.nutricoach.library.entity.Program;
 import com.nutricoach.library.entity.ProgramDay;
 import com.nutricoach.library.repository.ClientProgramAssignmentRepository;
 import com.nutricoach.library.repository.ClientWorkoutCompletionRepository;
+import com.nutricoach.library.repository.ClientWorkoutScheduleRepository;
 import com.nutricoach.library.repository.ProgramDayRepository;
 import com.nutricoach.library.repository.ProgramRepository;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +43,51 @@ public class PortalWorkoutService {
     private final ProgramRepository programRepository;
     private final ProgramDayRepository programDayRepository;
     private final ClientWorkoutCompletionRepository completionRepository;
+    private final ClientWorkoutScheduleRepository scheduleRepository;
     private final WorkoutService workoutService;
+
+    /**
+     * The (workoutId, date) pairs a client was expected to train on within
+     * {@code [from, to]} inclusive — program-derived days plus ad-hoc schedules.
+     *
+     * <p>Shared with {@link #listUpcoming}, which is the same expansion bounded
+     * to today onward and enriched with exercise lines. Keeping one expansion
+     * means the Training card and the client's own list can never disagree
+     * about what was planned.
+     */
+    @Transactional(readOnly = true)
+    public Set<PlannedWorkout> plannedBetween(UUID clientId, UUID coachId, LocalDate from, LocalDate to) {
+        Set<PlannedWorkout> planned = new HashSet<>();
+
+        for (ClientProgramAssignment a : assignmentRepository
+                .findByCoachIdAndClientIdAndDeletedAtIsNullOrderByAssignedAtDesc(coachId, clientId)) {
+            Program program = programRepository
+                    .findByIdAndCoachIdAndDeletedAtIsNull(a.getProgramId(), coachId).orElse(null);
+            if (program == null) continue;
+
+            LocalDate startDate = a.getStartDate() != null
+                    ? a.getStartDate()
+                    : a.getAssignedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+
+            for (ProgramDay day : programDayRepository.findByProgramIdOrderByDayNumberAsc(program.getId())) {
+                if (day.getWorkoutId() == null) continue;
+                LocalDate date = startDate.plusDays(day.getDayNumber() - 1L);
+                if (date.isBefore(from) || date.isAfter(to)) continue;
+                planned.add(new PlannedWorkout(day.getWorkoutId(), date));
+            }
+        }
+
+        for (ClientWorkoutSchedule sched : scheduleRepository
+                .findByCoachIdAndClientIdAndScheduledDateBetweenAndDeletedAtIsNullOrderByScheduledDateAsc(
+                        coachId, clientId, from, to)) {
+            planned.add(new PlannedWorkout(sched.getWorkoutId(), sched.getScheduledDate()));
+        }
+
+        return planned;
+    }
+
+    /** One workout the client was expected to do on one date. */
+    public record PlannedWorkout(UUID workoutId, LocalDate date) {}
 
     @Transactional(readOnly = true)
     public List<ClientScheduledWorkoutResponse> listUpcoming(UUID clientId, UUID coachId) {
