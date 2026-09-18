@@ -1,7 +1,6 @@
 package com.nutricoach.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -17,6 +16,10 @@ public record ClientVerifyOtpRequest(
         @Size(min = 6, max = 6, message = "OTP must be 6 digits")
         String otp,
 
-        @NotNull(message = "coachId is required")
+        /**
+         * Optional. A client's phone identifies exactly one coach (changeset
+         * 028), so the portal no longer needs it. Still accepted because the
+         * web portal and the Android app both send it today.
+         */
         UUID coachId
 ) {}

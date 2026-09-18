@@ -66,4 +66,10 @@
     <!-- Meal items may name a food outside the curated food_items set -->
     <include file="db/changelog/changes/027-meal-item-custom-food.xml"/>
 
+    <!-- One phone, one coach - enforced in the database, not just in code -->
+    <include file="db/changelog/changes/028-client-phone-global-unique.xml"/>
+
+    <!-- PORTAL_INVITE notification type -->
+    <include file="db/changelog/changes/029-notification-type-portal-invite.xml"/>
+
 </databaseChangeLog>

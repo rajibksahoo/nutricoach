@@ -72,12 +72,21 @@ public class ClientAuthService {
         return issueTokenForClient(phone, coachId);
     }
 
+    /**
+     * @param coachId optional. When absent the coach is resolved from the phone,
+     *                which is unique among active clients (changeset 028). That
+     *                is what lets a client sign in with just their number rather
+     *                than a link carrying their coach's id.
+     */
     private ClientAuthResponse issueTokenForClient(String phone, UUID coachId) {
-        Client client = clientRepository.findByPhoneAndCoachIdAndDeletedAtIsNull(phone, coachId)
+        Client client = (coachId != null
+                ? clientRepository.findByPhoneAndCoachIdAndDeletedAtIsNull(phone, coachId)
+                : clientRepository.findByPhoneAndDeletedAtIsNull(phone))
                 .orElseThrow(() -> NutriCoachException.notFound(
-                        "No client account found for this number with this coach"));
+                        "No client account found for this number. Ask your coach to add you."));
 
-        String token = jwtService.generateClientToken(phone, client.getId(), coachId);
-        return new ClientAuthResponse(token, client.getId(), coachId, client.getName(), client.getPhone());
+        UUID resolvedCoachId = client.getCoachId();
+        String token = jwtService.generateClientToken(phone, client.getId(), resolvedCoachId);
+        return new ClientAuthResponse(token, client.getId(), resolvedCoachId, client.getName(), client.getPhone());
     }
 }

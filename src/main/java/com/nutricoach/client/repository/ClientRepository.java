@@ -36,5 +36,14 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
     // Client portal auth
     Optional<Client> findByPhoneAndCoachIdAndDeletedAtIsNull(String phone, UUID coachId);
 
+    /**
+     * The one active client on this number, whichever coach holds them.
+     *
+     * <p>Safe because changeset 028 makes {@code phone} unique among active
+     * clients; the portal uses it so a client can sign in with their number
+     * alone instead of needing a link carrying their coach's id.
+     */
+    Optional<Client> findByPhoneAndDeletedAtIsNull(String phone);
+
     boolean existsByPhoneAndDeletedAtIsNull(String phone);
 }

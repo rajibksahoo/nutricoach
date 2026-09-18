@@ -43,5 +43,6 @@ app:
       bucket: test-bucket
     access-key: local-test-key    # "local-" prefix → S3Service skips real AWS calls
     secret-key: local-test-secret
+  portal-url: http://localhost:3000   # used by the client invite message
   openai:
     api-key: local-test-key       # "local-" prefix → AiMealPlanService uses stub response
