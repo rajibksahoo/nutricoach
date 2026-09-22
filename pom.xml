@@ -23,6 +23,7 @@
         <bucket4j.version>8.10.1</bucket4j.version>
         <liquibase.version>4.29.2</liquibase.version>
         <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <sentry.version>7.14.0</sentry.version>
     </properties>
 
     <dependencies>
@@ -30,6 +31,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Error monitoring. Inert unless sentry.dsn is set, so local dev and
+             the test suite report nothing. -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+            <version>${sentry.version}</version>
         </dependency>
 
         <!-- Security -->

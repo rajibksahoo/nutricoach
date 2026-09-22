@@ -77,6 +77,20 @@ app:
   openai:
     api-key: ${OPENAI_API_KEY}
 
+# Error monitoring. An empty DSN disables Sentry entirely, which is what keeps
+# local dev and the test suite silent — there is no dev-mode flag to get wrong.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:production}
+  traces-sample-rate: 0.1
+  # Never attach request bodies, headers or user identifiers. Phone numbers are
+  # the login credential here and client rows carry health data; neither belongs
+  # in a third-party issue tracker.
+  send-default-pii: false
+  # NutriCoachException is the business-error type behind every 400/402/404/409.
+  # Reporting those would bury the real 500s under "Client not found".
+  ignored-exceptions-for-type: com.nutricoach.common.exception.NutriCoachException
+
 management:
   endpoints:
     web:
