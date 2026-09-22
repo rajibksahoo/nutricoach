@@ -97,6 +97,13 @@ CORS_ALLOWED_ORIGINS            # the real frontend origin, not a wildcard
 OPENAI_API_KEY
 ```
 
+Optional but strongly recommended:
+
+```
+SENTRY_DSN                      # unset = Sentry off and you fly blind on 500s
+SENTRY_ENVIRONMENT              # defaults to "production"
+```
+
 Leave `MSG91_DEV_MODE` and `RAZORPAY_DEV_MODE` **unset** — both default to false.
 
 JWT expiry is 72 hours in `application.yml` (local dev uses 720 to avoid
@@ -108,6 +115,20 @@ re-login). No change needed.
 NEXT_PUBLIC_API_URL=https://<your-backend>     # required; wrong value 404s every request
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_...       # without it, Billing refuses to open checkout
 ```
+
+Optional but strongly recommended:
+
+```
+NEXT_PUBLIC_POSTHOG_KEY=phc_...                # product analytics; EU cloud
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+NEXT_PUBLIC_SENTRY_DSN=https://...             # browser error monitoring
+SENTRY_ORG  SENTRY_PROJECT  SENTRY_AUTH_TOKEN  # build-time source map upload
+```
+
+Both analytics and browser Sentry require `NODE_ENV=production` **and** their
+key, so a dev build sends nothing even if the keys leak into `.env.local`. The
+three `SENTRY_*` build vars are optional: without them the build still succeeds,
+you just get minified stack traces.
 
 `NEXT_PUBLIC_DEV_MODE` must be **unset**. `IS_DEV_MODE` also requires
 `NODE_ENV !== "production"`, so a production build cannot show the "OTP is
@@ -122,8 +143,12 @@ Razorpay **secret** or the webhook secret here.
 
 - **There is no CI/CD.** Neither repo has `.github/workflows`, and there is no
   `Dockerfile`, `Procfile` or `vercel.json`. Deployment is manual today, and
-  nothing runs the test suites automatically. The 313 backend tests and 66 e2e
-  tests only run when someone runs them.
+  nothing runs the test suites automatically. The backend and e2e suites only
+  run when someone runs them.
+- **Observability is configured but unproven.** Sentry (both repos) and PostHog
+  (web) are wired and inert until their keys are set. Nothing has ever reported
+  a real event, so treat the first deploy as the test: throw one error and
+  confirm it lands.
 - **S3 bucket** in `ap-south-1` (Mumbai) for DPDP data residency. CORS must allow
   browser `PUT` (program cover uploads) and `GET` (progress photos) from the
   frontend origin.
