@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.29.xsd">
+
+    <!-- ================================================================= -->
+    <!-- A coach's in-app message now pings the client on WhatsApp, so     -->
+    <!-- notification_logs.type needs a value for it. The log row is also  -->
+    <!-- what throttles the ping, so this is load-bearing, not just audit. -->
+    <!--                                                                   -->
+    <!-- Same constraint-name caveat as changeset 029: the constraint is   -->
+    <!-- chk_notif_logs_type from changeset 011, not the name Postgres     -->
+    <!-- would have generated, and DROP ... IF EXISTS on a wrong name      -->
+    <!-- succeeds silently while leaving the real one in place.            -->
+    <!-- ================================================================= -->
+
+    <changeSet id="031-notification-type-new-message" author="nutricoach">
+        <sql>
+            ALTER TABLE notification_logs DROP CONSTRAINT IF EXISTS chk_notif_logs_type;
+            ALTER TABLE notification_logs ADD CONSTRAINT chk_notif_logs_type
+                CHECK (type IN ('OTP', 'MEAL_PLAN_SHARE', 'CHECK_IN_REMINDER',
+                                'PROGRESS_UPDATE', 'BILLING_ALERT', 'PORTAL_INVITE',
+                                'NEW_MESSAGE'));
+        </sql>
+
+        <rollback>
+            <sql>
+                ALTER TABLE notification_logs DROP CONSTRAINT IF EXISTS chk_notif_logs_type;
+                ALTER TABLE notification_logs ADD CONSTRAINT chk_notif_logs_type
+                    CHECK (type IN ('OTP', 'MEAL_PLAN_SHARE', 'CHECK_IN_REMINDER',
+                                    'PROGRESS_UPDATE', 'BILLING_ALERT', 'PORTAL_INVITE'));
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

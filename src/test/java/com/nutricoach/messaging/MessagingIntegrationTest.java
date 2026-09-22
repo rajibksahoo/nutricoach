@@ -9,6 +9,8 @@ import com.nutricoach.coach.repository.CoachRepository;
 import com.nutricoach.common.security.JwtService;
 import com.nutricoach.messaging.entity.Message;
 import com.nutricoach.messaging.repository.MessageRepository;
+import com.nutricoach.notifications.entity.NotificationLog;
+import com.nutricoach.notifications.repository.NotificationLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -29,6 +35,7 @@ class MessagingIntegrationTest extends AbstractIntegrationTest {
     @Autowired CoachRepository coachRepository;
     @Autowired ClientRepository clientRepository;
     @Autowired MessageRepository messageRepository;
+    @Autowired NotificationLogRepository notificationLogRepository;
     @Autowired JwtService jwtService;
 
     private Coach coach;
@@ -48,6 +55,11 @@ class MessagingIntegrationTest extends AbstractIntegrationTest {
                 clientRepository.findAllByCoachId(existing.getId()).forEach(c -> {
                     messageRepository.deleteAll(
                             messageRepository.findByCoachIdAndClientIdOrderByCreatedAtAsc(existing.getId(), c.getId()));
+                    // notification_logs FKs both coaches(id) and clients(id), so the
+                    // WhatsApp ping rows have to go before either delete below.
+                    notificationLogRepository.deleteAll(
+                            notificationLogRepository.findByCoachIdAndClientIdOrderByCreatedAtDesc(
+                                    existing.getId(), c.getId()));
                 });
                 clientRepository.deleteAll(clientRepository.findAllByCoachId(existing.getId()));
                 coachRepository.delete(existing);
@@ -274,5 +286,92 @@ class MessagingIntegrationTest extends AbstractIntegrationTest {
                 .readAt(readAt)
                 .build());
         return m.getId();
+    }
+
+    // ── WhatsApp ping on a new message ────────────────────────────────────────
+    // In-app messaging is write-only without this: the coach types and the client
+    // is never told. The ping is async, hence the awaits.
+
+    private List<NotificationLog> pings(UUID clientId) {
+        return notificationLogRepository
+                .findByCoachIdAndClientIdOrderByCreatedAtDesc(coach.getId(), clientId)
+                .stream()
+                .filter(l -> l.getType() == NotificationLog.Type.NEW_MESSAGE)
+                .toList();
+    }
+
+    private void coachSends(Client to, String content) throws Exception {
+        mockMvc.perform(post("/api/v1/messages/clients/" + to.getId())
+                        .header("Authorization", "Bearer " + coachJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("content", content))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void sendMessage_pingsTheClientOnWhatsApp() throws Exception {
+        coachSends(silentClient, "Hello, check your new plan");
+
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(pings(silentClient.getId())).hasSize(1));
+
+        NotificationLog ping = pings(silentClient.getId()).getFirst();
+        assertThat(ping.getStatus()).isEqualTo(NotificationLog.Status.SENT);
+        assertThat(ping.getChannel()).isEqualTo(NotificationLog.Channel.WHATSAPP);
+        assertThat(ping.getMessageBody()).contains(silentClient.getName());
+        // The body must never carry the message itself — a WhatsApp preview on a
+        // shared phone is not a place to leak what a coach wrote.
+        assertThat(ping.getMessageBody()).doesNotContain("check your new plan");
+    }
+
+    @Test
+    void sendMessage_whileClientStillHasUnread_doesNotPingTwice() throws Exception {
+        coachSends(silentClient, "First");
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(pings(silentClient.getId())).hasSize(1));
+
+        coachSends(silentClient, "Second");
+        coachSends(silentClient, "Third");
+
+        // Give the async pings a chance to land before asserting they did not.
+        Thread.sleep(1_000);
+        assertThat(pings(silentClient.getId()))
+                .as("a coach typing three lines should buzz the phone once")
+                .hasSize(1);
+    }
+
+    @Test
+    void sendMessage_afterClientReadsThread_pingsAgain() throws Exception {
+        coachSends(silentClient, "First");
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(pings(silentClient.getId())).hasSize(1));
+
+        // The client opening their thread marks the coach's messages read, which
+        // is what re-arms the ping. Driven through the real portal endpoint —
+        // calling the @Modifying repository method here needs a transaction the
+        // test does not have, and this is the path that actually runs in prod.
+        String silentClientJwt = jwtService.generateClientToken(
+                silentClient.getPhone(), silentClient.getId(), coach.getId());
+        mockMvc.perform(get("/api/v1/portal/messages")
+                        .header("Authorization", "Bearer " + silentClientJwt))
+                .andExpect(status().isOk());
+
+        coachSends(silentClient, "Second");
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(pings(silentClient.getId())).hasSize(2));
+    }
+
+    @Test
+    void portalSendMessage_doesNotPingAnyone() throws Exception {
+        mockMvc.perform(post("/api/v1/portal/messages")
+                        .header("Authorization", "Bearer " + clientJwt)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("content", "Hi coach"))))
+                .andExpect(status().isCreated());
+
+        Thread.sleep(1_000);
+        assertThat(pings(client.getId()))
+                .as("a coach lives in the app and has an unread badge; no WhatsApp bill for that")
+                .isEmpty();
     }
 }

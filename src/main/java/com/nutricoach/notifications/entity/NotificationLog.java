@@ -56,6 +56,6 @@ public class NotificationLog {
     private Instant createdAt;
 
     public enum Channel { SMS, WHATSAPP }
-    public enum Type { OTP, MEAL_PLAN_SHARE, CHECK_IN_REMINDER, PROGRESS_UPDATE, BILLING_ALERT, PORTAL_INVITE }
+    public enum Type { OTP, MEAL_PLAN_SHARE, CHECK_IN_REMINDER, PROGRESS_UPDATE, BILLING_ALERT, PORTAL_INVITE, NEW_MESSAGE }
     public enum Status { PENDING, SENT, FAILED }
 }
