@@ -11,13 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 /**
- * Enforces per-tier client limits.
+ * Enforces per-tier client limits and per-tier feature access.
  *
  * Limits:
  *   TRIAL        →  5 active clients
  *   STARTER      → 25 active clients
  *   PROFESSIONAL → 100 active clients
  *   ENTERPRISE   → unlimited
+ *
+ * Features:
+ *   AI meal-plan generation → TRIAL, PROFESSIONAL, ENTERPRISE (not STARTER)
+ *
+ * Both the caps and the feature rules are mirrored in the frontend's
+ * {@code lib/plans.ts} catalogue, which is what the pricing page renders. Change
+ * one and change the other, or the product sells something it does not deliver.
  */
 @Service
 @RequiredArgsConstructor
@@ -41,6 +48,40 @@ public class SubscriptionGate {
                     "Client limit reached for " + tierName + " plan (" + limit + " clients). " +
                     "Please upgrade to add more clients.");
         }
+    }
+
+    /**
+     * AI meal-plan generation is a paid feature: it carries a real per-call cost
+     * (OpenAI) and it is the reason to buy PROFESSIONAL over STARTER.
+     *
+     * <p>TRIAL keeps access on purpose — a coach who never sees the generator has
+     * no reason to upgrade for it, and trial is already capped at 5 clients, so the
+     * cost exposure is small.
+     */
+    @Transactional(readOnly = true)
+    public void requireAiMealPlans(UUID coachId) {
+        Coach coach = coachRepository.findById(coachId)
+                .orElseThrow(() -> NutriCoachException.notFound("Coach not found"));
+
+        if (!hasAiMealPlans(coach)) {
+            throw NutriCoachException.paymentRequired(
+                    "AI meal plan generation is available on the Professional plan and above. "
+                    + "Please upgrade to use it.");
+        }
+    }
+
+    /**
+     * Whether a coach's current tier/status includes AI meal-plan generation.
+     * Public so read-only callers report the same answer this gate enforces.
+     */
+    public boolean hasAiMealPlans(Coach coach) {
+        if (coach.getSubscriptionStatus() == Coach.SubscriptionStatus.TRIAL) {
+            return true;
+        }
+        return switch (coach.getSubscriptionTier()) {
+            case STARTER                   -> false;
+            case PROFESSIONAL, ENTERPRISE  -> true;
+        };
     }
 
     /**
