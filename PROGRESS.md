@@ -1,5 +1,69 @@
 # NutriCoach — Design Match Plan
 
+## Who this is for (decided 2026-09-22)
+
+> **NutriCoach is for independent fitness coaches and personal trainers in
+> India, who currently run their clients' training over WhatsApp messages and
+> spreadsheets.**
+
+That sentence is the filter for every "should I build this?" from here on. If a
+feature does not make that coach's week easier, it waits.
+
+**Why this persona and not nutritionists:** the fitness path is the one that
+actually works end to end today — exercises → workouts → multi-week programs →
+assign to client → client sees it on web and Android → completions come back.
+The nutrition *library* (meal plan templates, recipes, ingredients, recipe
+books) is four stubs, and reuse is precisely how a nutritionist scales past ten
+clients. Option B was sellable in a month; this one is sellable now.
+
+**What it does not mean:** nutrition is not dropped. The per-client meal plan
+builder and AI generation stay, and they are a genuine differentiator against
+pure training tools — that is the "meal plans too" line on the landing page.
+What is parked is the reusable template layer.
+
+**Already done under this decision** (web `feat/fitness-coach-launch`): landing
+hero and feature grid re-aimed at fitness coaches; Library nav filtered to
+launched groups only via a `launched` flag on each group in `LibrarySidebar`
+(Nutrition / Habits / Forms hidden, routes still resolve); all 16 "coming soon"
+controls deleted from the Exercises, Workouts and program-planner screens.
+
+**Revisit this when** you have paying fitness coaches and either they keep
+asking for meal-plan templates, or your distribution turns out to be
+dietitians. Flip a nav group's `launched` to `true` when its pages are real.
+
+**Still open:** the product is named NutriCoach and now sells to fitness
+coaches. Survivable, but it is a live tension, not an oversight.
+
+## One client surface (decided 2026-09-22)
+
+> **The client experience is the web portal (`nutricoach-web/app/(client)/portal/*`).
+> WhatsApp carries notifications. The Android app is parked.**
+
+The two surfaces did the same job: 10 portal routes against 11 app screens, for
+1,766 lines of TypeScript against 5,886 lines of Kotlin. The only thing the
+native app could do that a web page cannot is push — and push was never built
+(no FCM, no `google-services.json`). The app had never been released, so
+parking it cost nothing: zero users.
+
+**Parity was verified first.** The portal calls every `/api/v1/portal/*`
+endpoint the app does, workout completion included, so no client capability was
+lost. The backend is untouched by this decision — both surfaces always shared
+the same API.
+
+**What would reopen it:** paying coaches asking for a native app, or WhatsApp
+delivery proving unreliable enough to be worth replacing (GO-LIVE §4 — WATI
+session messages only land inside the 24-hour window after the client last
+messaged). If notifications are the real need, an installable PWA with web push
+on the existing portal is the cheaper first step, not reviving the Kotlin app.
+
+Recorded in `nutricoach-android/README.md` and the parked banner at the top of
+that repo's `CLAUDE.md` (branch `docs/park-android`).
+
+---
+
+> **Note:** the design-match queue below is **complete**. The title of this file
+> is historical; the persona statement above is what governs new work.
+
 > **Plan reset (2026-05-08):** the original 30-day MVP plan is archived at the bottom of this file. The single active goal now is to **match the design produced by Claude Design** for the NutriCoach product surface, screen by screen.
 >
 > Source of truth: `nutricoach-workout-builder/` design bundle (Workout Builder.html + sibling JSX prototypes + `colors_and_type.css`). Implement in `nutricoach-web` (Next.js + Tailwind). Backend (`nutricoach`) only changes if a screen needs an API that does not yet exist — design parity is not blocked on backend work.
