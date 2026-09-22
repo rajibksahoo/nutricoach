@@ -197,4 +197,58 @@ class AiJobIntegrationTest extends AbstractIntegrationTest {
             assertThat(completed.getOutputPayload()).containsKey("mealPlanId");
         }
     }
+
+    // ─── Tier gating ──────────────────────────────────────────────────────────
+    // AI generation is sold as Professional-and-above. The pricing page claimed
+    // that long before anything enforced it, so these pin the rule down.
+
+    /** Sets the fixture coach's billing state and returns a fresh token for it. */
+    private void setBilling(Coach.SubscriptionStatus status, Coach.SubscriptionTier tier) {
+        coach.setSubscriptionStatus(status);
+        coach.setSubscriptionTier(tier);
+        coach = coachRepository.save(coach);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions generate() throws Exception {
+        return mockMvc.perform(post("/api/v1/ai/meal-plans/generate")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("clientId", client.getId()))));
+    }
+
+    @Test
+    void generateMealPlan_starterPlan_returns402() throws Exception {
+        setBilling(Coach.SubscriptionStatus.ACTIVE, Coach.SubscriptionTier.STARTER);
+
+        generate()
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("Professional")));
+
+        assertThat(aiJobRepository.findByCoachIdOrderByCreatedAtDesc(coach.getId())).isEmpty();
+    }
+
+    @Test
+    void generateMealPlan_professionalPlan_returns201() throws Exception {
+        setBilling(Coach.SubscriptionStatus.ACTIVE, Coach.SubscriptionTier.PROFESSIONAL);
+        generate().andExpect(status().isCreated());
+    }
+
+    @Test
+    void generateMealPlan_enterprisePlan_returns201() throws Exception {
+        setBilling(Coach.SubscriptionStatus.ACTIVE, Coach.SubscriptionTier.ENTERPRISE);
+        generate().andExpect(status().isCreated());
+    }
+
+    /**
+     * A trial coach is on the STARTER tier by default, so this is the case that
+     * would break if the gate keyed on tier alone. Trials keep AI on purpose —
+     * it is the reason to upgrade.
+     */
+    @Test
+    void generateMealPlan_trialOnStarterTier_returns201() throws Exception {
+        setBilling(Coach.SubscriptionStatus.TRIAL, Coach.SubscriptionTier.STARTER);
+        generate().andExpect(status().isCreated());
+    }
 }

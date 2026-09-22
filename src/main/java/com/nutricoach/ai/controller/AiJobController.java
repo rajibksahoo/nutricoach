@@ -5,6 +5,7 @@ import com.nutricoach.ai.dto.GenerateMealPlanRequest;
 import com.nutricoach.ai.entity.AiJob;
 import com.nutricoach.ai.repository.AiJobRepository;
 import com.nutricoach.ai.service.AiMealPlanService;
+import com.nutricoach.billing.service.SubscriptionGate;
 import com.nutricoach.common.exception.NutriCoachException;
 import com.nutricoach.common.response.ApiResponse;
 import com.nutricoach.common.security.SecurityUtils;
@@ -32,14 +33,16 @@ public class AiJobController {
     private final AiMealPlanService aiMealPlanService;
     private final AiJobRepository aiJobRepository;
     private final SecurityUtils securityUtils;
+    private final SubscriptionGate subscriptionGate;
 
     @PostMapping("/meal-plans/generate")
     @Operation(summary = "Generate meal plan with AI",
-               description = "Submits an async GPT-4o job to generate a 7-day Indian meal plan for the given client. Poll GET /api/v1/ai/jobs/{id} for status.")
+               description = "Submits an async GPT-4o job to generate a 7-day Indian meal plan for the given client. Requires the Professional plan or above (trials included); returns 402 otherwise. Poll GET /api/v1/ai/jobs/{id} for status.")
     public ResponseEntity<ApiResponse<AiJobResponse>> generate(
             @Valid @RequestBody GenerateMealPlanRequest request) {
 
         UUID coachId = securityUtils.getCurrentCoachId();
+        subscriptionGate.requireAiMealPlans(coachId);
         AiJob job = aiMealPlanService.createJob(coachId, request.clientId());
         aiMealPlanService.processJob(job.getId());  // @Async — returns immediately
         return ResponseEntity.status(HttpStatus.CREATED)
