@@ -67,6 +67,21 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             @Param("coachId") UUID coachId,
             @Param("clientId") UUID clientId);
 
+    /**
+     * Count unread coach messages (sent by coach, client has not opened them).
+     * The mirror of {@link #countUnreadByCoachIdAndClientId}, and the signal that
+     * decides whether a WhatsApp ping is worth sending: a client sitting on unread
+     * messages has already been pinged and has not come back.
+     */
+    @Query("""
+        SELECT COUNT(m) FROM Message m
+        WHERE m.coachId = :coachId AND m.clientId = :clientId
+          AND m.senderType = 'COACH' AND m.readAt IS NULL
+        """)
+    long countUnreadCoachMessages(
+            @Param("coachId") UUID coachId,
+            @Param("clientId") UUID clientId);
+
     /** Mark all client messages in a conversation as read (called when coach opens the thread). */
     @Modifying
     @Query("""

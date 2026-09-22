@@ -26,6 +26,7 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final ClientRepository clientRepository;
     private final MessageMapper messageMapper;
+    private final ClientMessageNotifier clientMessageNotifier;
 
     /** Returns all clients for a coach as conversations, sorted by most recent message (clients with no messages appear last). */
     @Transactional(readOnly = true)
@@ -53,10 +54,14 @@ public class MessageService {
                 .toList();
     }
 
-    /** Sends a message from the coach to a client. */
+    /** Sends a message from the coach to a client, and pings them on WhatsApp. */
     @Transactional
     public MessageResponse sendMessage(UUID coachId, UUID clientId, SendMessageRequest request) {
         validateClientBelongsToCoach(clientId, coachId);
+
+        // Read before the save: afterwards the new message is itself unread, so
+        // the count can no longer tell us whether the client was already behind.
+        boolean hadUnreadBefore = messageRepository.countUnreadCoachMessages(coachId, clientId) > 0;
 
         Message message = Message.builder()
                 .coachId(coachId)
@@ -65,7 +70,13 @@ public class MessageService {
                 .content(request.content().trim())
                 .build();
 
-        return messageMapper.toResponse(messageRepository.save(message));
+        MessageResponse response = messageMapper.toResponse(messageRepository.save(message));
+
+        // Async and self-contained: in-app messaging is useless if the client is
+        // never told, but a WhatsApp outage must not fail the coach's send.
+        clientMessageNotifier.notifyNewMessage(coachId, clientId, hadUnreadBefore);
+
+        return response;
     }
 
     /** Client opens their thread: fetch messages + mark coach's messages as read. */

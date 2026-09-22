@@ -75,4 +75,7 @@
     <!-- Coaches can edit and remove check-ins, so they need soft delete -->
     <include file="db/changelog/changes/030-check-in-soft-delete.xml"/>
 
+    <!-- WhatsApp ping when a coach sends an in-app message -->
+    <include file="db/changelog/changes/031-notification-type-new-message.xml"/>
+
 </databaseChangeLog>

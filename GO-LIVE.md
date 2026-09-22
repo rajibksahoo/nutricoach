@@ -90,6 +90,7 @@ DATABASE_URL  DATABASE_USERNAME  DATABASE_PASSWORD
 JWT_SECRET                      # base64-encoded 256-bit key
 MSG91_AUTH_KEY  MSG91_TEMPLATE_ID
 WATI_API_ENDPOINT  WATI_API_TOKEN
+PORTAL_URL                      # public client-portal URL, e.g. https://app.example.com/portal
 RAZORPAY_KEY_ID  RAZORPAY_KEY_SECRET  RAZORPAY_WEBHOOK_SECRET
 RAZORPAY_PLAN_ID_STARTER  RAZORPAY_PLAN_ID_PROFESSIONAL  RAZORPAY_PLAN_ID_ENTERPRISE
 S3_BUCKET_NAME  AWS_ACCESS_KEY_ID  AWS_SECRET_ACCESS_KEY
@@ -98,6 +99,11 @@ OPENAI_API_KEY
 ```
 
 Leave `MSG91_DEV_MODE` and `RAZORPAY_DEV_MODE` **unset** — both default to false.
+
+`PORTAL_URL` has no default on purpose. Unset, the "send portal invite" action
+fails with a clear error, and the WhatsApp ping a client gets when their coach
+messages them falls back to "open the app" with no link. Neither is silent, but
+both are worse than setting it.
 
 JWT expiry is 72 hours in `application.yml` (local dev uses 720 to avoid
 re-login). No change needed.
@@ -148,6 +154,17 @@ These are not known failures. They are things nobody has ever seen work.
   dev-mode stub.
 - **Planner drag/drop** (move and Shift-copy) — verified by hand locally, worth
   one pass on the deployed build.
+- **Any WhatsApp message actually arriving.** `WatiService` short-circuits to a
+  log line whenever `WATI_API_TOKEN` starts with `local-`, which is every local
+  run, so no notification — invite, check-in reminder, meal-plan share, or the
+  new-message ping — has ever left the building. Worse, `sendTextMessage` posts
+  to WATI's `sendSessionMessage`, and the WhatsApp Business API only accepts a
+  free-form session message inside the 24-hour window after the *client* last
+  messaged the business number. Outside that window it needs a pre-approved
+  template. So the most valuable case — pinging a client who has gone quiet —
+  is the one most likely to be rejected. Get WATI templates approved and send
+  through them, or expect silent non-delivery. **Verify this first after
+  deploying: it is the retention loop.**
 
 ---
 
