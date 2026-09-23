@@ -33,6 +33,16 @@ Coaches pay monthly to manage clients, create meal plans, track progress, and ha
 mvn clean package -DskipTests
 ```
 
+### Quick start (Windows) - whole stack
+```cmd
+scripts\restart-dev.cmd
+```
+Closes the previous "NutriCoach API"/"NutriCoach Web" windows (whole process
+tree - `mvn spring-boot:run` forks a JVM that a port-only kill leaves behind),
+frees ports 8080/3000, starts `pg-test`, then launches both services in named
+windows and waits until each answers. Expects `nutricoach/` and
+`nutricoach-web/` to be siblings; errors clearly if not.
+
 ### Run locally
 ```bash
 # 1. Start the Docker test container (same one used for tests)
